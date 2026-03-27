@@ -1,5 +1,8 @@
 (function () {
   const THEME_STORAGE_KEY = "threadmaker_theme";
+  const DRAFT_STORAGE_KEY = "threadmaker_draft";
+  const SAVED_HASHTAGS_STORAGE_KEY = "threadmaker_saved_hashtags";
+  const UI_LANGUAGE_STORAGE_KEY = "threadmaker_ui_language";
   const alwaysCorrectByLanguage = {
     es: new Set(["mas"]),
     en: new Set(),
@@ -35,17 +38,191 @@
   };
 
   const languageLabels = {
-    en: "English",
-    es: "Español",
+    en: {
+      en: "English",
+      es: "Spanish",
+    },
+    es: {
+      en: "ingles",
+      es: "espanol",
+    },
+  };
+
+  const uiStrings = {
+    en: {
+      threadPrefix: "[Thread]",
+      documentTitle: "Free Thread Splitter for X (Twitter) and Bluesky",
+      metaDescription:
+        "Split long text into clean X / Twitter and Bluesky posts in your browser. Free and no account needed. Preserve line breaks, add hashtags, number posts, and correct English or Spanish.",
+      pageEyebrow: "Free, no account needed",
+      pageHeading: "Free Thread Splitter for X (Twitter) and Bluesky",
+      pageDescription:
+        "Split long text into clean posts in your browser. Preserve line breaks, add hashtags, number posts, and correct English or Spanish before you publish.",
+      charactersPerPost: "Characters per post",
+      customCharacterLimit: "Custom character limit",
+      longForm: "Long-form",
+      preserveLineBreaks: "Preserve line breaks",
+      language: "Language",
+      numberPosts: "Number posts",
+      darkLight: "Dark / light",
+      correctEnglish: "Correct English",
+      correctSpanish: "Correct Spanish",
+      clearCache: "Clear cache",
+      supportTitle: "Give if you're able",
+      signoff: "Made by Alex Blizky with",
+      clearText: "Clear text",
+      enterTextHere: "Enter text here...",
+      charCount: "{count} chars",
+      paste: "Paste",
+      pasting: "Pasting...",
+      pasted: "Pasted",
+      clipboardEmpty: "Clipboard is empty.",
+      save: "Save",
+      load: "Load",
+      enterHashtagsHere: "Enter hashtags here...",
+      noSavedHashtags: "No saved hashtags.",
+      deleteSavedHashtag: "Delete saved hashtag",
+      postLabel: "Post {index} of {total}",
+      copy: "Copy",
+      copied: "Copied",
+      copyPost: "Copy post",
+      copyFailed: "Copy failed in this browser. Try selecting the text manually.",
+      correctAction: "Correct {language}",
+      correctingEnglish: "Correcting English...",
+      correctingSpanish: "Correcting Spanish...",
+      correctingText: "Correcting text...",
+      noChangesNeeded: "No changes needed ({language})",
+      correctedIssue_one: "Corrected {count} issue",
+      correctedIssue_other: "Corrected {count} issues",
+      flaggedTerm_one: "flagged {count} suspicious term",
+      flaggedTerm_other: "flagged {count} suspicious terms",
+      viaLanguageTool: "{parts} via LanguageTool",
+      fallbackFix_one: "Applied {count} fallback fix",
+      fallbackFix_other: "Applied {count} fallback fixes",
+      correctionFailed: "Correction failed",
+      clearingCache: "Clearing cache...",
+      cacheClearFailed: "Cache clear failed.",
+      invalidCharacterLimit: "Please choose a valid character limit.",
+      hashtagsFullLimit: "The hashtags alone use the full last-post limit.",
+      hashtagsNumberingNoRoom: "The hashtags and numbering leave no room for the last post.",
+      splitTextFailed: "Could not split this text cleanly. Try a slightly higher limit.",
+    },
+    es: {
+      threadPrefix: "[Hilo]",
+      documentTitle: "Creador gratuito de hilos para X (Twitter) y Bluesky",
+      metaDescription:
+        "Divide texto largo en publicaciones limpias para X / Twitter y Bluesky desde tu navegador. Gratis y sin cuenta. Preserva saltos de linea, agrega hashtags, numera publicaciones y corrige ingles o espanol.",
+      pageEyebrow: "Gratis y sin cuenta",
+      pageHeading: "Creador gratuito de hilos para X (Twitter) y Bluesky",
+      pageDescription:
+        "Divide texto largo en publicaciones limpias desde tu navegador. Preserva saltos de linea, agrega hashtags, numera publicaciones y corrige ingles o espanol antes de publicar.",
+      charactersPerPost: "Caracteres por publicacion",
+      customCharacterLimit: "Limite personalizado de caracteres",
+      longForm: "Texto largo",
+      preserveLineBreaks: "Preservar saltos de linea",
+      language: "Idioma",
+      numberPosts: "Numerar publicaciones",
+      darkLight: "Oscuro / claro",
+      correctEnglish: "Corregir ingles",
+      correctSpanish: "Corregir espanol",
+      clearCache: "Borrar cache",
+      supportTitle: "Apoya si puedes",
+      signoff: "Hecho por Alex Blizky con",
+      clearText: "Borrar texto",
+      enterTextHere: "Escribe el texto aqui...",
+      charCount: "{count} caracteres",
+      paste: "Pegar",
+      pasting: "Pegando...",
+      pasted: "Pegado",
+      clipboardEmpty: "El portapapeles esta vacio.",
+      save: "Guardar",
+      load: "Cargar",
+      enterHashtagsHere: "Escribe hashtags aqui...",
+      noSavedHashtags: "No hay hashtags guardados.",
+      deleteSavedHashtag: "Eliminar hashtag guardado",
+      postLabel: "Publicacion {index} de {total}",
+      copy: "Copiar",
+      copied: "Copiado",
+      copyPost: "Copiar publicacion",
+      copyFailed: "La copia fallo en este navegador. Intenta seleccionar el texto manualmente.",
+      correctAction: "Corregir {language}",
+      correctingEnglish: "Corrigiendo ingles...",
+      correctingSpanish: "Corrigiendo espanol...",
+      correctingText: "Corrigiendo texto...",
+      noChangesNeeded: "No se necesitan cambios ({language})",
+      correctedIssue_one: "Corregido {count} problema",
+      correctedIssue_other: "Corregidos {count} problemas",
+      flaggedTerm_one: "marcado {count} termino sospechoso",
+      flaggedTerm_other: "marcados {count} terminos sospechosos",
+      viaLanguageTool: "{parts} con LanguageTool",
+      fallbackFix_one: "Aplicada {count} correccion alternativa",
+      fallbackFix_other: "Aplicadas {count} correcciones alternativas",
+      correctionFailed: "La correccion fallo",
+      clearingCache: "Borrando cache...",
+      cacheClearFailed: "No se pudo borrar la cache.",
+      invalidCharacterLimit: "Elige un limite de caracteres valido.",
+      hashtagsFullLimit: "Los hashtags por si solos usan todo el limite del ultimo post.",
+      hashtagsNumberingNoRoom: "Los hashtags y la numeracion no dejan espacio para el ultimo post.",
+      splitTextFailed: "No se pudo dividir este texto limpiamente. Prueba con un limite un poco mayor.",
+    },
   };
 
   const ignoredCorrections = new Set();
 
   let selectedLanguage = "en";
   let languageSetManually = false;
+  let interfaceLanguage = "en";
+
+  function uiText(key, replacements = {}, locale = interfaceLanguage) {
+    const safeLocale = locale === "es" ? "es" : "en";
+    const template = uiStrings[safeLocale][key] || uiStrings.en[key] || key;
+
+    return template.replace(/\{(\w+)\}/g, (_, token) => {
+      if (Object.prototype.hasOwnProperty.call(replacements, token)) {
+        return String(replacements[token]);
+      }
+
+      return `{${token}}`;
+    });
+  }
+
+  function getLanguageLabel(language, options = {}) {
+    const safeLocale = options.locale === "es" ? "es" : options.locale === "en" ? "en" : interfaceLanguage;
+    const safeLanguage = language === "es" ? "es" : "en";
+    let label = languageLabels[safeLocale][safeLanguage];
+
+    if (options.capitalize && label) {
+      label = label.charAt(0).toUpperCase() + label.slice(1);
+    }
+
+    return label;
+  }
+
+  function pluralText(key, count, locale = interfaceLanguage) {
+    return uiText(`${key}_${count === 1 ? "one" : "other"}`, { count }, locale);
+  }
 
   function normalizeText(value) {
     return value.replace(/\r\n?/g, "\n").trim();
+  }
+
+  function getThreadPrefix(language = selectedLanguage) {
+    const safeLanguage = language === "es" ? "es" : "en";
+    return `${uiText("threadPrefix", {}, safeLanguage)} `;
+  }
+
+  function prependThreadPrefix(text, language = selectedLanguage) {
+    const normalized = normalizeText(text || "");
+
+    if (!normalized) {
+      return "";
+    }
+
+    if (/^\[(?:thread|hilo)\]\s*/i.test(normalized)) {
+      return normalized;
+    }
+
+    return `${getThreadPrefix(language)}${normalized}`;
   }
 
   function normalizeWord(word) {
@@ -1077,7 +1254,7 @@
     const splitMode = options.splitMode === "compact" ? "compact" : "paragraph";
     const hashtags = normalizeHashtags(options.hashtags || "");
     const hashtagsBlock = hashtags ? `\n\n${hashtags}` : "";
-    const normalizedText = normalizeText(text || "");
+    const normalizedText = prependThreadPrefix(text || "", selectedLanguage);
 
     if (!normalizedText) {
       return {
@@ -1089,15 +1266,15 @@
     }
 
     if (!Number.isFinite(limit) || limit < 1) {
-      throw new Error("Please choose a valid character limit.");
+      throw new Error(uiText("invalidCharacterLimit"));
     }
 
     if (hashtagsBlock.length >= limit) {
-      throw new Error("The hashtags alone use the full last-post limit.");
+      throw new Error(uiText("hashtagsFullLimit"));
     }
 
     if (numbering && limit - hashtagsBlock.length - " (1/1)".length < 1) {
-      throw new Error("The hashtags and numbering leave no room for the last post.");
+      throw new Error(uiText("hashtagsNumberingNoRoom"));
     }
 
     const posts =
@@ -1121,7 +1298,7 @@
       });
 
     if (!posts) {
-      throw new Error("Could not split this text cleanly. Try a slightly higher limit.");
+      throw new Error(uiText("splitTextFailed"));
     }
 
     return {
@@ -1155,28 +1332,91 @@
     const moreMenu = document.getElementById("more-menu");
     const platformLimit = document.getElementById("platform-limit");
     const customLimit = document.getElementById("custom-limit");
-    const splitModeInput = document.getElementById("split-mode");
+    const preserveLineBreaksInput = document.getElementById("preserve-line-breaks");
+    const languageSelect = document.getElementById("language-select");
     const numberingInput = document.getElementById("include-numbering");
     const pasteButton = document.getElementById("paste-text");
     const pasteButtonLabel = pasteButton.querySelector(".panel-button-label");
+    const clearButton = document.getElementById("clear-text");
     const themeToggle = document.getElementById("theme-toggle");
     const correctEnglishButton = document.getElementById("correct-english");
     const correctSpanishButton = document.getElementById("correct-spanish");
+    const clearCacheButton = document.getElementById("clear-cache");
     const correctionStatus = document.getElementById("correction-status");
     const sourceCharCount = document.getElementById("source-char-count");
     const hashtagsInput = document.getElementById("hashtags");
+    const saveHashtagsButton = document.getElementById("save-hashtags");
+    const loadHashtagsButton = document.getElementById("load-hashtags");
+    const hashtagsMenu = document.getElementById("hashtags-menu");
+    const hashtagsMenuList = document.getElementById("hashtags-menu-list");
     const sourceInput = document.getElementById("source-text");
     const resultsList = document.getElementById("results-list");
     const template = document.getElementById("post-template");
     const banner = document.getElementById("message-banner");
+    const pageEyebrow = document.getElementById("page-eyebrow");
+    const pageHeading = document.getElementById("page-heading");
+    const pageDescription = document.getElementById("page-description");
+    const platformLimitLabel = form.querySelector('label[for="platform-limit"]');
+    const preserveLineBreaksTitle = form.querySelector('label[for="preserve-line-breaks"] .toggle-title');
+    const languageSelectLabel = form.querySelector('label[for="language-select"]');
+    const numberingTitle = form.querySelector('label[for="include-numbering"] .toggle-title');
+    const themeTitle = form.querySelector('label[for="theme-toggle"] .toggle-title');
+    const supportTitleText = form.querySelector(".menu-support-title span");
+    const menuSignoff = form.querySelector(".menu-signoff");
+    const metaDescription = document.getElementById("meta-description");
+    const ogTitleMeta = document.getElementById("og-title");
+    const ogDescriptionMeta = document.getElementById("og-description");
+    const ogLocaleMeta = document.getElementById("og-locale");
+    const twitterTitleMeta = document.getElementById("twitter-title");
+    const twitterDescriptionMeta = document.getElementById("twitter-description");
+    const platformLongFormOption = platformLimit.querySelector('option[value="500"]');
+    const platformCustomOption = platformLimit.querySelector('option[value="custom"]');
+    const languageEnglishOption = languageSelect.querySelector('option[value="en"]');
+    const languageSpanishOption = languageSelect.querySelector('option[value="es"]');
+
+    function getSplitModeValue() {
+      return preserveLineBreaksInput.checked ? "paragraph" : "compact";
+    }
 
     function loadThemePreference() {
       try {
         const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-        return storedTheme === "light" ? "light" : "dark";
+        return storedTheme === "dark" ? "dark" : "light";
       } catch (error) {
-        return "dark";
+        return "light";
       }
+    }
+
+    function loadInterfaceLanguagePreference() {
+      try {
+        const storedLanguage = window.localStorage.getItem(UI_LANGUAGE_STORAGE_KEY);
+        if (storedLanguage === "es" || storedLanguage === "en") {
+          return storedLanguage;
+        }
+        return null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function detectBrowserLanguage() {
+      const browserLanguages = Array.isArray(navigator.languages) && navigator.languages.length
+        ? navigator.languages
+        : [navigator.language];
+
+      for (const language of browserLanguages) {
+        const normalized = String(language || "").trim().toLowerCase();
+
+        if (normalized === "es" || normalized.startsWith("es-")) {
+          return "es";
+        }
+
+        if (normalized === "en" || normalized.startsWith("en-")) {
+          return "en";
+        }
+      }
+
+      return null;
     }
 
     function applyTheme(theme) {
@@ -1191,6 +1431,323 @@
         window.localStorage.setItem(THEME_STORAGE_KEY, safeTheme);
       } catch (error) {
         return;
+      }
+    }
+
+    function updateMenuSignoffText() {
+      if (!menuSignoff) {
+        return;
+      }
+
+      const textNode = Array.from(menuSignoff.childNodes).find((node) => node.nodeType === Node.TEXT_NODE);
+      if (!textNode) {
+        return;
+      }
+
+      textNode.textContent = `${uiText("signoff")} `;
+    }
+
+    function applyUiTranslations() {
+      document.title = uiText("documentTitle");
+      pageEyebrow.textContent = uiText("pageEyebrow");
+      pageHeading.textContent = uiText("pageHeading");
+      pageDescription.textContent = uiText("pageDescription");
+      platformLimitLabel.textContent = uiText("charactersPerPost");
+      customLimit.setAttribute("aria-label", uiText("customCharacterLimit"));
+      preserveLineBreaksTitle.textContent = uiText("preserveLineBreaks");
+      languageSelectLabel.textContent = uiText("language");
+      numberingTitle.textContent = uiText("numberPosts");
+      themeTitle.textContent = uiText("darkLight");
+      correctEnglishButton.textContent = uiText("correctEnglish");
+      correctSpanishButton.textContent = uiText("correctSpanish");
+      clearCacheButton.textContent = uiText("clearCache");
+      supportTitleText.textContent = uiText("supportTitle");
+      sourceInput.dataset.placeholder = uiText("enterTextHere");
+      hashtagsInput.placeholder = uiText("enterHashtagsHere");
+      saveHashtagsButton.textContent = uiText("save");
+      loadHashtagsButton.textContent = uiText("load");
+      clearButton.setAttribute("aria-label", uiText("clearText"));
+      clearButton.setAttribute("title", uiText("clearText"));
+      pasteButtonLabel.textContent = uiText("paste");
+      if (pasteButton.getAttribute("aria-label") !== uiText("pasted")) {
+        pasteButton.setAttribute("aria-label", uiText("paste"));
+        pasteButton.setAttribute("title", uiText("paste"));
+      }
+
+      if (metaDescription) {
+        metaDescription.setAttribute("content", uiText("metaDescription"));
+      }
+
+      if (ogTitleMeta) {
+        ogTitleMeta.setAttribute("content", uiText("documentTitle"));
+      }
+
+      if (ogDescriptionMeta) {
+        ogDescriptionMeta.setAttribute("content", uiText("metaDescription"));
+      }
+
+      if (ogLocaleMeta) {
+        ogLocaleMeta.setAttribute("content", interfaceLanguage === "es" ? "es_ES" : "en_US");
+      }
+
+      if (twitterTitleMeta) {
+        twitterTitleMeta.setAttribute("content", uiText("documentTitle"));
+      }
+
+      if (twitterDescriptionMeta) {
+        twitterDescriptionMeta.setAttribute("content", uiText("metaDescription"));
+      }
+
+      platformLongFormOption.textContent = `${uiText("longForm")} · 500`;
+      platformCustomOption.textContent = interfaceLanguage === "es" ? "Personalizado" : "Custom";
+      languageEnglishOption.textContent = getLanguageLabel("en", { capitalize: true });
+      languageSpanishOption.textContent = getLanguageLabel("es", { capitalize: true });
+
+      updateMenuSignoffText();
+      updateSourceCharCount();
+
+      if (!hashtagsMenu.hidden) {
+        renderHashtagMenu();
+      }
+    }
+
+    function applyInterfaceLanguage(language, options = {}) {
+      interfaceLanguage = language === "es" ? "es" : "en";
+
+      if (languageSelect) {
+        languageSelect.value = interfaceLanguage;
+      }
+
+      document.documentElement.lang = interfaceLanguage;
+      applyUiTranslations();
+      syncLanguageStatus();
+      syncCorrectActionState();
+
+      if (options.persist) {
+        try {
+          window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, interfaceLanguage);
+        } catch (error) {
+          return;
+        }
+      }
+    }
+
+    function loadDraftState() {
+      try {
+        const storedDraft = window.sessionStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!storedDraft) {
+          return null;
+        }
+
+        const parsedDraft = JSON.parse(storedDraft);
+        return parsedDraft && typeof parsedDraft === "object" ? parsedDraft : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function saveDraftState() {
+      try {
+        window.sessionStorage.setItem(
+          DRAFT_STORAGE_KEY,
+          JSON.stringify({
+            sourceText: getSourceText(),
+            hashtags: hashtagsInput.value,
+            platformLimit: platformLimit.value,
+            customLimit: customLimit.value,
+            splitMode: getSplitModeValue(),
+            numbering: numberingInput.checked,
+            selectedLanguage,
+            languageSetManually,
+          }),
+        );
+      } catch (error) {
+        return;
+      }
+    }
+
+    function restoreDraftState() {
+      const draft = loadDraftState();
+      if (!draft) {
+        return false;
+      }
+
+      if (typeof draft.platformLimit === "string") {
+        platformLimit.value = draft.platformLimit === "custom" ? "custom" : draft.platformLimit;
+      }
+
+      if (typeof draft.customLimit === "string" && draft.customLimit) {
+        customLimit.value = draft.customLimit;
+      }
+
+      if (typeof draft.splitMode === "string") {
+        preserveLineBreaksInput.checked = draft.splitMode === "paragraph";
+      }
+
+      numberingInput.checked = Boolean(draft.numbering);
+      hashtagsInput.value = typeof draft.hashtags === "string" ? draft.hashtags : "";
+      setSourceText(typeof draft.sourceText === "string" ? draft.sourceText : "");
+
+      if (typeof draft.selectedLanguage === "string") {
+        applyLanguageSelection(draft.selectedLanguage, {
+          manual: Boolean(draft.languageSetManually),
+        });
+      }
+
+      return true;
+    }
+
+    function getHashtagTokens(value = hashtagsInput.value) {
+      const normalized = normalizeHashtags(value || "");
+      return normalized ? normalized.split(/\s+/).filter(Boolean) : [];
+    }
+
+    function loadSavedHashtags() {
+      try {
+        const stored = window.localStorage.getItem(SAVED_HASHTAGS_STORAGE_KEY);
+        if (!stored) {
+          return [];
+        }
+
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed)) {
+          return [];
+        }
+
+        return Array.from(
+          new Set(
+            parsed.flatMap((value) => getHashtagTokens(String(value || ""))),
+          ),
+        );
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveSavedHashtags(values) {
+      try {
+        window.localStorage.setItem(
+          SAVED_HASHTAGS_STORAGE_KEY,
+          JSON.stringify(
+            Array.from(
+              new Set(
+                values.flatMap((value) => getHashtagTokens(String(value || ""))),
+              ),
+            ),
+          ),
+        );
+      } catch (error) {
+        return;
+      }
+    }
+
+    function closeHashtagsMenu() {
+      hashtagsMenu.hidden = true;
+      hashtagsMenu.style.maxHeight = "";
+      loadHashtagsButton.setAttribute("aria-expanded", "false");
+    }
+
+    function syncHashtagsMenuSize() {
+      hashtagsMenu.style.maxHeight = "";
+
+      if (hashtagsMenu.hidden) {
+        return;
+      }
+
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const menuRect = hashtagsMenu.getBoundingClientRect();
+      const availableHeight = Math.max(0, Math.floor(viewportHeight - menuRect.top - 12));
+
+      if (availableHeight > 0) {
+        hashtagsMenu.style.maxHeight = `${availableHeight}px`;
+      }
+    }
+
+    function updateHashtagButtonsState() {
+      const currentTokens = getHashtagTokens();
+      const saved = loadSavedHashtags();
+      const savedSet = new Set(saved);
+      saveHashtagsButton.disabled =
+        !currentTokens.length || currentTokens.every((token) => savedSet.has(token));
+      loadHashtagsButton.disabled = !saved.length;
+
+      if (!saved.length) {
+        closeHashtagsMenu();
+      }
+    }
+
+    function renderHashtagMenu() {
+      const saved = loadSavedHashtags();
+      const currentTokens = new Set(getHashtagTokens());
+
+      if (!saved.length) {
+        hashtagsMenuList.innerHTML = `<p class="hashtags-menu-empty">${uiText("noSavedHashtags")}</p>`;
+        updateHashtagButtonsState();
+        return;
+      }
+
+      hashtagsMenuList.innerHTML = saved
+        .map((value) => {
+          const encodedValue = encodeURIComponent(value);
+          const checked = getHashtagTokens(value).every((token) => currentTokens.has(token));
+
+          return `
+            <div class="hashtags-menu-entry">
+              <label class="hashtags-menu-checkbox-row">
+                <input
+                  class="hashtags-menu-checkbox"
+                  type="checkbox"
+                  data-value="${encodedValue}"
+                  ${checked ? "checked" : ""}
+                />
+                <span class="hashtags-menu-label">${escapeHtml(value)}</span>
+              </label>
+              <button
+                class="hashtags-menu-delete-button"
+                type="button"
+                data-delete-value="${encodedValue}"
+                aria-label="${uiText("deleteSavedHashtag")}"
+                title="${uiText("deleteSavedHashtag")}"
+              >
+                <img
+                  class="hashtags-menu-delete-icon"
+                  src="./assets/icons/close_circle_line.svg"
+                  alt=""
+                  width="20"
+                  height="20"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+          `;
+        })
+        .join("");
+
+      updateHashtagButtonsState();
+      syncHashtagsMenuSize();
+    }
+
+    function openHashtagsMenu() {
+      renderHashtagMenu();
+      hashtagsMenu.hidden = false;
+      loadHashtagsButton.setAttribute("aria-expanded", "true");
+      syncHashtagsMenuSize();
+    }
+
+    function toggleHashtagsMenu() {
+      if (hashtagsMenu.hidden) {
+        openHashtagsMenu();
+        return;
+      }
+
+      closeHashtagsMenu();
+    }
+
+    function handleLoadHashtagsClick(event) {
+      toggleHashtagsMenu();
+
+      if (event.detail > 0) {
+        loadHashtagsButton.blur();
       }
     }
 
@@ -1336,11 +1893,15 @@
 
     function syncLanguageStatus() {
       const hasText = Boolean(normalizeText(getSourceText()));
-      setCorrectionStatus(hasText ? `Correct ${languageLabels[selectedLanguage]}` : "");
+      setCorrectionStatus(hasText ? uiText("correctAction", { language: getLanguageLabel(selectedLanguage) }) : "");
     }
 
     function updateSourceCharCount() {
-      sourceCharCount.textContent = `${getSourceText().length} chars`;
+      sourceCharCount.textContent = uiText("charCount", { count: getSourceText().length });
+    }
+
+    function updateClearButtonState() {
+      clearButton.disabled = !normalizeText(getSourceText());
     }
 
     function canUseClipboardRead() {
@@ -1351,32 +1912,11 @@
       );
     }
 
-    function showManualPasteFallback() {
-      focusSourceInput();
-      pasteButton.classList.add("pasted");
-      pasteButtonLabel.textContent = "Paste";
-      pasteButton.setAttribute("aria-label", "Tap and hold to paste");
-      pasteButton.setAttribute("title", "Tap and hold to paste");
-      setBanner(
-        "Direct paste is blocked here. On iPhone, tap and hold inside the text box, then choose Paste."
-      );
-      window.setTimeout(() => {
-        pasteButton.classList.remove("pasted");
-        if (!pasteButton.disabled) {
-          pasteButtonLabel.textContent = "Paste";
-          pasteButton.setAttribute("aria-label", "Paste");
-          pasteButton.setAttribute("title", "Paste");
-        }
-      }, 1600);
-    }
-
     function applyLanguageSelection(language, options = {}) {
       selectedLanguage = language === "es" ? "es" : "en";
       if (options.manual) {
         languageSetManually = true;
       }
-
-      document.documentElement.lang = selectedLanguage;
       syncCorrectActionState();
       syncLanguageStatus();
     }
@@ -1421,27 +1961,33 @@
         const copyButtonLabel = fragment.querySelector(".panel-button-label");
         const postCharCount = fragment.querySelector(".post-char-count");
 
-        postLabel.textContent = `Post ${index + 1} of ${posts.length}`;
-        postCharCount.textContent = `${post.length} chars`;
+        postLabel.textContent = uiText("postLabel", {
+          index: index + 1,
+          total: posts.length,
+        });
+        postCharCount.textContent = uiText("charCount", { count: post.length });
         postBody.textContent = post;
         copyButton.dataset.value = post;
+        copyButtonLabel.textContent = uiText("copy");
+        copyButton.setAttribute("aria-label", uiText("copyPost"));
+        copyButton.setAttribute("title", uiText("copyPost"));
 
         copyButton.addEventListener("click", async () => {
           try {
             await copyText(post);
             copyButton.classList.add("copied");
-            copyButtonLabel.textContent = "Copied";
-            copyButton.setAttribute("aria-label", "Copied");
-            copyButton.setAttribute("title", "Copied");
+            copyButtonLabel.textContent = uiText("copied");
+            copyButton.setAttribute("aria-label", uiText("copied"));
+            copyButton.setAttribute("title", uiText("copied"));
             window.setTimeout(() => {
               copyButton.classList.remove("copied");
-              copyButtonLabel.textContent = "Copy";
-              copyButton.setAttribute("aria-label", "Copy post");
-              copyButton.setAttribute("title", "Copy post");
+              copyButtonLabel.textContent = uiText("copy");
+              copyButton.setAttribute("aria-label", uiText("copyPost"));
+              copyButton.setAttribute("title", uiText("copyPost"));
             }, 1400);
           } catch (error) {
             banner.hidden = false;
-            banner.textContent = "Copy failed in this browser. Try selecting the text manually.";
+            banner.textContent = uiText("copyFailed");
           }
         });
 
@@ -1544,32 +2090,34 @@
     }
 
     function render() {
-      if (platformLimit.value === "custom") {
-        customLimit.hidden = false;
-      } else {
-        customLimit.hidden = true;
-      }
-
-      const rawText = getSourceText();
-      const limit = getLimitValue();
-      updateCorrectButtonState();
-      updateSourceCharCount();
-
-      if (!normalizeText(rawText)) {
-        syncLanguageStatus();
-        setBanner("");
-        renderEmpty();
-        return;
-      }
-
-      syncLanguageStatus();
-
       try {
+        if (platformLimit.value === "custom") {
+          customLimit.hidden = false;
+        } else {
+          customLimit.hidden = true;
+        }
+
+        const rawText = getSourceText();
+        const limit = getLimitValue();
+        updateCorrectButtonState();
+        updateSourceCharCount();
+        updateClearButtonState();
+        updateHashtagButtonsState();
+
+        if (!normalizeText(rawText)) {
+          syncLanguageStatus();
+          setBanner("");
+          renderEmpty();
+          return;
+        }
+
+        syncLanguageStatus();
+
         const result = buildThread(rawText, {
           limit,
           numbering: numberingInput.checked,
           hashtags: hashtagsInput.value,
-          splitMode: splitModeInput.value,
+          splitMode: getSplitModeValue(),
         });
 
         renderPosts(result.posts);
@@ -1577,12 +2125,18 @@
       } catch (error) {
         renderEmpty();
         setBanner(error.message);
+      } finally {
+        saveDraftState();
       }
     }
 
     function closeMenuOnOutsidePress(event) {
       if (moreMenu.open && !moreMenu.contains(event.target)) {
         moreMenu.open = false;
+      }
+
+      if (!hashtagsMenu.hidden && !hashtagsMenu.contains(event.target) && event.target !== loadHashtagsButton) {
+        closeHashtagsMenu();
       }
     }
 
@@ -1599,8 +2153,8 @@
       correctSpanishButton.disabled = true;
       const button = language === "es" ? correctSpanishButton : correctEnglishButton;
       const originalLabel = button.textContent;
-      button.textContent = language === "es" ? "Correcting Spanish..." : "Correcting English...";
-      setCorrectionStatus("Correcting text...");
+      button.textContent = language === "es" ? uiText("correctingSpanish") : uiText("correctingEnglish");
+      setCorrectionStatus(uiText("correctingText"));
 
       try {
         const result = await correctTextContent(rawText, language);
@@ -1612,24 +2166,57 @@
         render();
 
         if (!result.changes && !result.ignoredRanges.length) {
-          setCorrectionStatus(`No changes needed (${languageLabels[language]})`);
+          setCorrectionStatus(uiText("noChangesNeeded", { language: getLanguageLabel(language) }));
         } else if (result.method === "languagetool") {
           const parts = [];
           if (result.changes) {
-            parts.push(`Corrected ${result.changes} issue${result.changes === 1 ? "" : "s"}`);
+            parts.push(pluralText("correctedIssue", result.changes));
           }
           if (result.ignoredRanges.length) {
-            parts.push(`flagged ${result.ignoredRanges.length} suspicious term${result.ignoredRanges.length === 1 ? "" : "s"}`);
+            parts.push(pluralText("flaggedTerm", result.ignoredRanges.length));
           }
-          setCorrectionStatus(`${parts.join(", ")} via LanguageTool`);
+          setCorrectionStatus(uiText("viaLanguageTool", { parts: parts.join(", ") }));
         } else {
-          setCorrectionStatus(`Applied ${result.changes} fallback fix${result.changes === 1 ? "" : "es"}`);
+          setCorrectionStatus(pluralText("fallbackFix", result.changes));
         }
       } catch (error) {
-        setCorrectionStatus("Correction failed");
+        setCorrectionStatus(uiText("correctionFailed"));
       } finally {
         button.textContent = originalLabel;
         updateCorrectButtonState();
+      }
+    }
+
+    async function handleClearCache() {
+      const originalLabel = clearCacheButton.textContent;
+      clearCacheButton.disabled = true;
+      clearCacheButton.textContent = uiText("clearingCache");
+
+      try {
+        try {
+          window.localStorage.removeItem(THEME_STORAGE_KEY);
+          window.localStorage.removeItem(UI_LANGUAGE_STORAGE_KEY);
+          window.localStorage.removeItem(SAVED_HASHTAGS_STORAGE_KEY);
+        } catch (error) {
+          // Ignore storage failures and continue clearing what we can.
+        }
+
+        try {
+          window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+        } catch (error) {
+          // Ignore storage failures and continue clearing what we can.
+        }
+
+        if (window.caches && typeof window.caches.keys === "function") {
+          const cacheKeys = await window.caches.keys();
+          await Promise.all(cacheKeys.map((key) => window.caches.delete(key)));
+        }
+
+        window.location.reload();
+      } catch (error) {
+        clearCacheButton.disabled = false;
+        clearCacheButton.textContent = originalLabel;
+        setBanner(uiText("cacheClearFailed"));
       }
     }
 
@@ -1664,19 +2251,18 @@
 
     async function handlePasteFromClipboard() {
       pasteButton.disabled = true;
-      pasteButtonLabel.textContent = "Paste";
-      pasteButton.setAttribute("aria-label", "Pasting...");
-      pasteButton.setAttribute("title", "Pasting...");
+      pasteButtonLabel.textContent = uiText("paste");
+      pasteButton.setAttribute("aria-label", uiText("pasting"));
+      pasteButton.setAttribute("title", uiText("pasting"));
 
       try {
         if (!canUseClipboardRead()) {
-          showManualPasteFallback();
           return;
         }
 
         const pastedText = await navigator.clipboard.readText();
         if (!pastedText) {
-          setBanner("Clipboard is empty.");
+          setBanner(uiText("clipboardEmpty"));
           return;
         }
 
@@ -1686,30 +2272,102 @@
         sourceInput.dispatchEvent(new Event("input", { bubbles: true }));
         setBanner("");
         pasteButton.classList.add("pasted");
-        pasteButtonLabel.textContent = "Paste";
-        pasteButton.setAttribute("aria-label", "Pasted");
-        pasteButton.setAttribute("title", "Pasted");
+        pasteButtonLabel.textContent = uiText("paste");
+        pasteButton.setAttribute("aria-label", uiText("pasted"));
+        pasteButton.setAttribute("title", uiText("pasted"));
         window.setTimeout(() => {
           pasteButton.classList.remove("pasted");
-          pasteButtonLabel.textContent = "Paste";
-          pasteButton.setAttribute("aria-label", "Paste");
-          pasteButton.setAttribute("title", "Paste");
+          pasteButtonLabel.textContent = uiText("paste");
+          pasteButton.setAttribute("aria-label", uiText("paste"));
+          pasteButton.setAttribute("title", uiText("paste"));
         }, 1400);
       } catch (error) {
-        showManualPasteFallback();
+        return;
       } finally {
         window.setTimeout(() => {
           pasteButton.disabled = false;
-          if (
-            pasteButton.getAttribute("aria-label") !== "Pasted" &&
-            pasteButton.getAttribute("aria-label") !== "Tap and hold to paste"
-          ) {
-            pasteButtonLabel.textContent = "Paste";
-            pasteButton.setAttribute("aria-label", "Paste");
-            pasteButton.setAttribute("title", "Paste");
+          if (pasteButton.getAttribute("aria-label") !== uiText("pasted")) {
+            pasteButtonLabel.textContent = uiText("paste");
+            pasteButton.setAttribute("aria-label", uiText("paste"));
+            pasteButton.setAttribute("title", uiText("paste"));
           }
         }, 0);
       }
+    }
+
+    function handleClearSource() {
+      setSourceText("");
+      hashtagsInput.value = "";
+      setBanner("");
+      render();
+
+      if (!hashtagsMenu.hidden) {
+        renderHashtagMenu();
+      }
+
+      focusSourceInput();
+    }
+
+    function handleHashtagsInput() {
+      render();
+
+      if (!hashtagsMenu.hidden) {
+        renderHashtagMenu();
+      }
+    }
+
+    function handleSaveHashtags() {
+      const currentTokens = getHashtagTokens();
+      if (!currentTokens.length) {
+        return;
+      }
+
+      hashtagsInput.value = currentTokens.join(" ");
+      const saved = loadSavedHashtags();
+      saveSavedHashtags([...saved, ...currentTokens]);
+
+      render();
+
+      if (!hashtagsMenu.hidden) {
+        renderHashtagMenu();
+      } else {
+        updateHashtagButtonsState();
+      }
+    }
+
+    function handleHashtagMenuChange(event) {
+      const checkbox = event.target.closest(".hashtags-menu-checkbox");
+      if (!checkbox) {
+        return;
+      }
+
+      const presetValue = decodeURIComponent(checkbox.dataset.value || "");
+      const currentTokens = getHashtagTokens();
+      let nextTokens = currentTokens.slice();
+
+      if (checkbox.checked) {
+        const existing = new Set(nextTokens);
+        if (!existing.has(presetValue)) {
+          nextTokens.push(presetValue);
+        }
+      } else {
+        nextTokens = nextTokens.filter((token) => token !== presetValue);
+      }
+
+      hashtagsInput.value = nextTokens.join(" ");
+      render();
+      renderHashtagMenu();
+    }
+
+    function handleHashtagMenuClick(event) {
+      const deleteButton = event.target.closest(".hashtags-menu-delete-button");
+      if (!deleteButton) {
+        return;
+      }
+
+      const presetValue = decodeURIComponent(deleteButton.dataset.deleteValue || "");
+      saveSavedHashtags(loadSavedHashtags().filter((value) => value !== presetValue));
+      renderHashtagMenu();
     }
 
     function handleSourceInput(event) {
@@ -1723,9 +2381,6 @@
       }
 
       maybeApplySuggestedLanguage(currentText);
-      if (banner.textContent.includes("tap and hold")) {
-        setBanner("");
-      }
       render();
     }
 
@@ -1757,25 +2412,47 @@
     sourceInput.addEventListener("click", handleSourceClick);
     sourceInput.addEventListener("paste", handleSourcePaste);
     correctionStatus.addEventListener("click", () => handleCorrection(selectedLanguage));
-    hashtagsInput.addEventListener("input", render);
+    hashtagsInput.addEventListener("input", handleHashtagsInput);
     platformLimit.addEventListener("change", render);
     customLimit.addEventListener("input", render);
-    splitModeInput.addEventListener("change", render);
+    preserveLineBreaksInput.addEventListener("change", render);
+    languageSelect.addEventListener("change", () => {
+      applyInterfaceLanguage(languageSelect.value, { persist: true });
+      render();
+    });
     pasteButton.addEventListener("click", handlePasteFromClipboard);
+    clearButton.addEventListener("click", handleClearSource);
+    saveHashtagsButton.addEventListener("click", handleSaveHashtags);
+    loadHashtagsButton.addEventListener("click", handleLoadHashtagsClick);
+    hashtagsMenuList.addEventListener("change", handleHashtagMenuChange);
+    hashtagsMenuList.addEventListener("click", handleHashtagMenuClick);
     correctEnglishButton.addEventListener("click", () => handleCorrection("en"));
     correctSpanishButton.addEventListener("click", () => handleCorrection("es"));
+    clearCacheButton.addEventListener("click", handleClearCache);
     themeToggle.addEventListener("change", () => {
       applyTheme(themeToggle.checked ? "light" : "dark");
     });
     document.addEventListener("click", closeMenuOnOutsidePress);
+    window.addEventListener("resize", syncHashtagsMenuSize);
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && moreMenu.open) {
-        moreMenu.open = false;
+      if (event.key === "Escape") {
+        if (moreMenu.open) {
+          moreMenu.open = false;
+        }
+
+        if (!hashtagsMenu.hidden) {
+          closeHashtagsMenu();
+        }
       }
     });
 
+    const initialBrowserLanguage = detectBrowserLanguage();
+
     applyTheme(loadThemePreference());
-    applyLanguageSelection("en");
+    applyInterfaceLanguage(loadInterfaceLanguagePreference() || initialBrowserLanguage || "en");
+    if (!restoreDraftState()) {
+      applyLanguageSelection(initialBrowserLanguage || "en");
+    }
     render();
   }
 

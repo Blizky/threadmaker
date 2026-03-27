@@ -1,16 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ThreadMaker</title>
+    <title>Free Thread Splitter for X (Twitter) and Bluesky</title>
+    <meta
+      id="meta-description"
+      name="description"
+      content="Split long text into clean X / Twitter and Bluesky posts in your browser. Free and no account needed. Preserve line breaks, add hashtags, number posts, and correct English or Spanish."
+    />
+    <meta
+      name="robots"
+      content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+    />
+    <meta name="author" content="Alex Blizky" />
+    <meta name="application-name" content="ThreadMaker" />
+    <meta name="theme-color" content="#f6f8fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ThreadMaker" />
+    <meta
+      id="og-title"
+      property="og:title"
+      content="Free Thread Splitter for X (Twitter) and Bluesky"
+    />
+    <meta
+      id="og-description"
+      property="og:description"
+      content="Split long text into clean X / Twitter and Bluesky posts in your browser. Free and no account needed. Preserve line breaks, add hashtags, number posts, and correct English or Spanish."
+    />
+    <meta id="og-locale" property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary" />
+    <meta
+      id="twitter-title"
+      name="twitter:title"
+      content="Free Thread Splitter for X (Twitter) and Bluesky"
+    />
+    <meta
+      id="twitter-description"
+      name="twitter:description"
+      content="Split long text into clean X / Twitter and Bluesky posts in your browser. Free and no account needed. Preserve line breaks, add hashtags, number posts, and correct English or Spanish."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "ThreadMaker",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript and a modern web browser.",
+        "description": "Split long text into clean X / Twitter and Bluesky posts in your browser. Free and no account needed. Preserve line breaks, add hashtags, number posts, and correct English or Spanish.",
+        "inLanguage": ["en", "es"],
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Alex Blizky"
+        },
+        "featureList": [
+          "Split long text into X / Twitter and Bluesky posts",
+          "Preserve line breaks or use compact formatting",
+          "Add hashtags and post numbering",
+          "Correct English and Spanish text in-browser"
+        ]
+      }
+    </script>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
-          <span>ThreadMaker</span>
           <img
             class="brand-bolt"
             src="./assets/svg/blizlab-bolt.svg"
@@ -19,6 +82,7 @@
             height="12"
             aria-hidden="true"
           />
+          <span>ThreadMaker</span>
         </div>
         <details class="more-menu" id="more-menu">
           <summary class="more-trigger">
@@ -32,6 +96,26 @@
             />
           </summary>
           <form class="menu-panel" id="thread-form">
+            <div class="field-group menu-inline-field">
+              <label for="language-select">Language</label>
+              <select id="language-select" name="language-select" class="menu-compact-control">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+              </select>
+            </div>
+
+            <label class="toggle-row" for="theme-toggle">
+              <div>
+                <span class="toggle-title">Dark / light</span>
+              </div>
+              <span class="toggle-control">
+                <input id="theme-toggle" name="theme-toggle" type="checkbox" />
+                <span class="toggle-icon" aria-hidden="true"></span>
+              </span>
+            </label>
+
+            <div class="menu-divider" aria-hidden="true"></div>
+
             <div class="field-group">
               <label for="platform-limit">Characters per post</label>
               <select id="platform-limit" name="platform-limit" class="menu-compact-control">
@@ -54,13 +138,15 @@
               />
             </div>
 
-            <div class="field-group menu-inline-field">
-              <label for="split-mode">Split mode</label>
-              <select id="split-mode" name="split-mode" class="menu-compact-control">
-                <option value="compact" selected>Compact</option>
-                <option value="paragraph">Paragraph</option>
-              </select>
-            </div>
+            <label class="toggle-row" for="preserve-line-breaks">
+              <div>
+                <span class="toggle-title">Preserve line breaks</span>
+              </div>
+              <span class="toggle-control">
+                <input id="preserve-line-breaks" name="preserve-line-breaks" type="checkbox" />
+                <span class="toggle-icon" aria-hidden="true"></span>
+              </span>
+            </label>
 
             <label class="toggle-row" for="include-numbering">
               <div>
@@ -72,22 +158,15 @@
               </span>
             </label>
 
-            <label class="toggle-row" for="theme-toggle">
-              <div>
-                <span class="toggle-title">Dark / light</span>
-              </div>
-              <span class="toggle-control">
-                <input id="theme-toggle" name="theme-toggle" type="checkbox" />
-                <span class="toggle-icon" aria-hidden="true"></span>
-              </span>
-            </label>
-
             <div class="menu-actions">
               <button id="correct-english" class="menu-text-action" type="button">
                 Correct English
               </button>
               <button id="correct-spanish" class="menu-text-action" type="button">
                 Correct Spanish
+              </button>
+              <button id="clear-cache" class="menu-text-action" type="button">
+                Clear cache
               </button>
             </div>
 
@@ -156,12 +235,37 @@
     </header>
 
     <main class="app-shell">
+      <section class="page-intro" aria-labelledby="page-heading">
+        <p class="page-eyebrow" id="page-eyebrow">Free, no account needed</p>
+        <h1 class="page-title" id="page-heading">Free Thread Splitter for X (Twitter) and Bluesky</h1>
+        <p class="page-description" id="page-description">
+          Split long text into clean posts in your browser. Preserve line breaks, add hashtags,
+          number posts, and correct English or Spanish before you publish.
+        </p>
+      </section>
+
       <section class="input-section">
-        <div class="composer-card">
-          <div class="textarea-shell">
-            <div
-              id="source-text"
-              name="source-text"
+          <div class="composer-card">
+            <div class="textarea-shell">
+              <button
+                id="clear-text"
+                class="clear-overlay-button"
+                type="button"
+                aria-label="Clear text"
+                title="Clear text"
+              >
+                <img
+                  class="icon-img clear-overlay-icon"
+                  src="./assets/icons/close_circle_fill.svg"
+                  alt=""
+                  width="28"
+                  height="28"
+                  aria-hidden="true"
+                />
+              </button>
+              <div
+                id="source-text"
+                name="source-text"
               class="editor-input"
               contenteditable="true"
               spellcheck="false"
@@ -191,14 +295,33 @@
       </section>
 
       <section class="hashtags-section">
-        <div class="field-group">
-          <input
-            id="hashtags"
-            name="hashtags"
-            type="text"
-            placeholder="Enter hashtags here..."
-            autocomplete="off"
-          />
+        <div class="hashtags-toolbar">
+          <div class="hashtags-input-wrap">
+            <input
+              id="hashtags"
+              name="hashtags"
+              type="text"
+              placeholder="Enter hashtags here..."
+              autocomplete="off"
+            />
+          </div>
+          <div class="hashtags-actions">
+            <button id="save-hashtags" class="action-button hashtags-action-button" type="button">
+              Save
+            </button>
+            <button
+              id="load-hashtags"
+              class="action-button hashtags-action-button"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >
+              Load
+            </button>
+            <div class="hashtags-menu" id="hashtags-menu" hidden>
+              <div class="hashtags-menu-list" id="hashtags-menu-list"></div>
+            </div>
+          </div>
         </div>
       </section>
 
