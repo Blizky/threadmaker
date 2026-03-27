@@ -126,7 +126,7 @@ a {
 
 .topbar {
   position: relative;
-  z-index: 20;
+  z-index: 70;
   border-bottom: 1px solid var(--line);
   background: var(--topbar-bg);
   backdrop-filter: blur(16px);
@@ -163,7 +163,7 @@ a {
 
 .more-menu {
   position: relative;
-  z-index: 30;
+  z-index: 80;
 }
 
 .more-trigger {
@@ -213,8 +213,10 @@ a {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  z-index: 40;
+  z-index: 90;
   width: min(280px, calc(100vw - 32px));
+  max-height: calc(100vh - 74px);
+  max-height: calc(100dvh - 74px);
   display: grid;
   gap: 14px;
   padding: 16px;
@@ -222,6 +224,20 @@ a {
   border-radius: 0;
   background: var(--menu-panel-bg);
   box-shadow: var(--shadow);
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .menu-actions {
@@ -1020,5 +1036,13 @@ select:focus {
 
   textarea {
     min-height: 340px;
+  }
+}
+
+@media (max-width: 719px) {
+  .menu-panel {
+    position: fixed;
+    top: 58px;
+    right: 16px;
   }
 }

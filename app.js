@@ -1330,6 +1330,7 @@
   function initApp() {
     const form = document.getElementById("thread-form");
     const moreMenu = document.getElementById("more-menu");
+    const menuBackdrop = document.getElementById("menu-backdrop");
     const platformLimit = document.getElementById("platform-limit");
     const customLimit = document.getElementById("custom-limit");
     const preserveLineBreaksInput = document.getElementById("preserve-line-breaks");
@@ -2130,13 +2131,35 @@
       }
     }
 
+    function eventTargetsNode(event, node) {
+      if (!node) {
+        return false;
+      }
+
+      if (typeof event.composedPath === "function") {
+        return event.composedPath().includes(node);
+      }
+
+      return node.contains(event.target);
+    }
+
     function closeMenuOnOutsidePress(event) {
-      if (moreMenu.open && !moreMenu.contains(event.target)) {
+      if (moreMenu.open && !eventTargetsNode(event, moreMenu)) {
         moreMenu.open = false;
       }
 
-      if (!hashtagsMenu.hidden && !hashtagsMenu.contains(event.target) && event.target !== loadHashtagsButton) {
+      if (
+        !hashtagsMenu.hidden &&
+        !eventTargetsNode(event, hashtagsMenu) &&
+        !eventTargetsNode(event, loadHashtagsButton)
+      ) {
         closeHashtagsMenu();
+      }
+    }
+
+    function syncMoreMenuState() {
+      if (menuBackdrop) {
+        menuBackdrop.hidden = !moreMenu.open;
       }
     }
 
@@ -2426,13 +2449,27 @@
     loadHashtagsButton.addEventListener("click", handleLoadHashtagsClick);
     hashtagsMenuList.addEventListener("change", handleHashtagMenuChange);
     hashtagsMenuList.addEventListener("click", handleHashtagMenuClick);
+    moreMenu.addEventListener("toggle", syncMoreMenuState);
+    if (menuBackdrop) {
+      menuBackdrop.addEventListener("click", () => {
+        moreMenu.open = false;
+      });
+    }
     correctEnglishButton.addEventListener("click", () => handleCorrection("en"));
     correctSpanishButton.addEventListener("click", () => handleCorrection("es"));
     clearCacheButton.addEventListener("click", handleClearCache);
     themeToggle.addEventListener("change", () => {
       applyTheme(themeToggle.checked ? "light" : "dark");
     });
-    document.addEventListener("click", closeMenuOnOutsidePress);
+    if (window.PointerEvent) {
+      document.addEventListener("pointerdown", closeMenuOnOutsidePress, true);
+    } else {
+      document.addEventListener("mousedown", closeMenuOnOutsidePress, true);
+      document.addEventListener("touchstart", closeMenuOnOutsidePress, {
+        capture: true,
+        passive: true,
+      });
+    }
     window.addEventListener("resize", syncHashtagsMenuSize);
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
@@ -2450,6 +2487,7 @@
 
     applyTheme(loadThemePreference());
     applyInterfaceLanguage(loadInterfaceLanguagePreference() || initialBrowserLanguage || "en");
+    syncMoreMenuState();
     if (!restoreDraftState()) {
       applyLanguageSelection(initialBrowserLanguage || "en");
     }
