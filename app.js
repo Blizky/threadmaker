@@ -69,7 +69,7 @@
       correctSpanish: "Correct Spanish",
       clearCache: "Clear cache",
       supportTitle: "Give if you're able",
-      signoff: "Made by Alex Blizky with",
+      signoff: "Made by Alex with",
       clearText: "Clear text",
       enterTextHere: "Enter text here...",
       charCount: "{count} chars",
@@ -127,7 +127,7 @@
       correctSpanish: "Corregir espanol",
       clearCache: "Borrar cache",
       supportTitle: "Apoya si puedes",
-      signoff: "Hecho por Alex Blizky con",
+      signoff: "Hecho por Alex con",
       clearText: "Borrar texto",
       enterTextHere: "Escribe el texto aqui...",
       charCount: "{count} caracteres",
@@ -1153,18 +1153,19 @@
     const continuationMarker = options.continuationMarker || "";
 
     return posts.map((post, index) => {
+      const isLastPost = index === posts.length - 1;
       let output = post;
 
-      if (index < posts.length - 1 && continuationMarker) {
+      if (!isLastPost && continuationMarker) {
         output += continuationMarker;
-      }
-
-      if (index === posts.length - 1 && hashtagsBlock) {
-        output += hashtagsBlock;
       }
 
       if (numbering) {
         output += ` (${index + 1}/${posts.length})`;
+      }
+
+      if (isLastPost && hashtagsBlock) {
+        output += hashtagsBlock;
       }
 
       return output;
@@ -2495,7 +2496,7 @@
   }
 
   if (typeof window !== "undefined") {
-    window.ThreadMaker = {
+    window.ThreadMK = {
       buildThread,
       correctTextContent,
       detectSuggestedLanguage,
