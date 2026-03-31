@@ -237,7 +237,23 @@
     <button id="menu-backdrop" class="menu-backdrop" type="button" hidden aria-label="Close menu"></button>
 
     <main class="app-shell">
-      <section class="page-intro" aria-labelledby="page-heading">
+      <section class="page-intro" id="page-intro" aria-labelledby="page-heading">
+        <button
+          id="dismiss-intro"
+          class="page-intro-dismiss"
+          type="button"
+          aria-label="Hide intro"
+          title="Hide intro"
+        >
+          <img
+            class="icon-img page-intro-dismiss-icon"
+            src="./assets/icons/close_circle_fill.svg"
+            alt=""
+            width="28"
+            height="28"
+            aria-hidden="true"
+          />
+        </button>
         <p class="page-eyebrow" id="page-eyebrow">Free, no account needed</p>
         <h1 class="page-title" id="page-heading">Free Thread Splitter for X (Twitter) and Bluesky</h1>
         <p class="page-description" id="page-description">
@@ -247,27 +263,29 @@
       </section>
 
       <section class="input-section">
-          <div class="composer-card">
-            <div class="textarea-shell">
-              <button
-                id="clear-text"
-                class="clear-overlay-button"
-                type="button"
-                aria-label="Clear text"
-                title="Clear text"
-              >
-                <img
-                  class="icon-img clear-overlay-icon"
-                  src="./assets/icons/close_circle_fill.svg"
-                  alt=""
-                  width="28"
-                  height="28"
-                  aria-hidden="true"
-                />
-              </button>
-              <div
-                id="source-text"
-                name="source-text"
+        <div class="drafts-toolbar">
+          <button id="new-draft" class="action-button drafts-action-button" type="button">New</button>
+          <button id="save-draft" class="action-button drafts-action-button" type="button">Save draft</button>
+          <div class="drafts-actions">
+            <button
+              id="load-drafts"
+              class="action-button drafts-action-button"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >
+              Load draft
+            </button>
+            <div class="drafts-menu" id="drafts-menu" hidden>
+              <div class="drafts-menu-list" id="drafts-menu-list"></div>
+            </div>
+          </div>
+        </div>
+        <div class="composer-card">
+          <div class="textarea-shell">
+            <div
+              id="source-text"
+              name="source-text"
               class="editor-input"
               contenteditable="true"
               spellcheck="false"

@@ -1,6 +1,8 @@
 (function () {
   const THEME_STORAGE_KEY = "threadmaker_theme";
   const DRAFT_STORAGE_KEY = "threadmaker_draft";
+  const INTRO_DISMISSED_STORAGE_KEY = "threadmaker_intro_dismissed";
+  const SAVED_DRAFTS_STORAGE_KEY = "threadmaker_saved_drafts";
   const SAVED_HASHTAGS_STORAGE_KEY = "threadmaker_saved_hashtags";
   const UI_LANGUAGE_STORAGE_KEY = "threadmaker_ui_language";
   const alwaysCorrectByLanguage = {
@@ -79,6 +81,13 @@
       clipboardEmpty: "Clipboard is empty.",
       save: "Save",
       load: "Load",
+      newDraft: "New",
+      saveDraft: "Save draft",
+      loadDraft: "Load draft",
+      hideIntro: "Hide intro",
+      noSavedDrafts: "No saved drafts.",
+      deleteSavedDraft: "Delete saved draft",
+      untitledDraft: "Untitled draft",
       enterHashtagsHere: "Enter hashtags here...",
       noSavedHashtags: "No saved hashtags.",
       deleteSavedHashtag: "Delete saved hashtag",
@@ -137,6 +146,13 @@
       clipboardEmpty: "El portapapeles esta vacio.",
       save: "Guardar",
       load: "Cargar",
+      newDraft: "Nuevo",
+      saveDraft: "Guardar borrador",
+      loadDraft: "Cargar borrador",
+      hideIntro: "Ocultar introduccion",
+      noSavedDrafts: "No hay borradores guardados.",
+      deleteSavedDraft: "Eliminar borrador guardado",
+      untitledDraft: "Borrador sin titulo",
       enterHashtagsHere: "Escribe hashtags aqui...",
       noSavedHashtags: "No hay hashtags guardados.",
       deleteSavedHashtag: "Eliminar hashtag guardado",
@@ -255,6 +271,26 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function renderPostHtml(text) {
+    const content = String(text || "");
+    let html = "";
+    let lastIndex = 0;
+    const hashtagPattern = /#[\p{L}\p{N}_]+/gu;
+    let match = hashtagPattern.exec(content);
+
+    while (match) {
+      const hashtag = match[0];
+      const start = match.index;
+      html += escapeHtml(content.slice(lastIndex, start));
+      html += `<span class="post-hashtag">${escapeHtml(hashtag)}</span>`;
+      lastIndex = start + hashtag.length;
+      match = hashtagPattern.exec(content);
+    }
+
+    html += escapeHtml(content.slice(lastIndex));
+    return html;
   }
 
   function wrapSegment(segmentText, segmentStart, ranges) {
@@ -1255,9 +1291,9 @@
     const splitMode = options.splitMode === "compact" ? "compact" : "paragraph";
     const hashtags = normalizeHashtags(options.hashtags || "");
     const hashtagsBlock = hashtags ? `\n\n${hashtags}` : "";
-    const normalizedText = prependThreadPrefix(text || "", selectedLanguage);
+    const plainText = normalizeText(text || "");
 
-    if (!normalizedText) {
+    if (!plainText) {
       return {
         posts: [],
         hashtags,
@@ -1273,6 +1309,20 @@
     if (hashtagsBlock.length >= limit) {
       throw new Error(uiText("hashtagsFullLimit"));
     }
+
+    const singlePost = `${plainText}${hashtagsBlock}`;
+
+    if (singlePost.length <= limit) {
+      return {
+        posts: [singlePost],
+        hashtags,
+        totalCharacters: singlePost.length,
+        warning: "",
+        splitMode,
+      };
+    }
+
+    const normalizedText = prependThreadPrefix(plainText, selectedLanguage);
 
     if (numbering && limit - hashtagsBlock.length - " (1/1)".length < 1) {
       throw new Error(uiText("hashtagsNumberingNoRoom"));
@@ -1329,6 +1379,8 @@
   }
 
   function initApp() {
+    let activeSavedDraftId = null;
+
     const form = document.getElementById("thread-form");
     const moreMenu = document.getElementById("more-menu");
     const menuBackdrop = document.getElementById("menu-backdrop");
@@ -1339,7 +1391,11 @@
     const numberingInput = document.getElementById("include-numbering");
     const pasteButton = document.getElementById("paste-text");
     const pasteButtonLabel = pasteButton.querySelector(".panel-button-label");
-    const clearButton = document.getElementById("clear-text");
+    const newDraftButton = document.getElementById("new-draft");
+    const saveDraftButton = document.getElementById("save-draft");
+    const loadDraftButton = document.getElementById("load-drafts");
+    const draftsMenu = document.getElementById("drafts-menu");
+    const draftsMenuList = document.getElementById("drafts-menu-list");
     const themeToggle = document.getElementById("theme-toggle");
     const correctEnglishButton = document.getElementById("correct-english");
     const correctSpanishButton = document.getElementById("correct-spanish");
@@ -1355,9 +1411,11 @@
     const resultsList = document.getElementById("results-list");
     const template = document.getElementById("post-template");
     const banner = document.getElementById("message-banner");
+    const pageIntro = document.getElementById("page-intro");
     const pageEyebrow = document.getElementById("page-eyebrow");
     const pageHeading = document.getElementById("page-heading");
     const pageDescription = document.getElementById("page-description");
+    const dismissIntroButton = document.getElementById("dismiss-intro");
     const platformLimitLabel = form.querySelector('label[for="platform-limit"]');
     const preserveLineBreaksTitle = form.querySelector('label[for="preserve-line-breaks"] .toggle-title');
     const languageSelectLabel = form.querySelector('label[for="language-select"]');
@@ -1399,6 +1457,14 @@
         return null;
       } catch (error) {
         return null;
+      }
+    }
+
+    function loadIntroDismissedPreference() {
+      try {
+        return window.localStorage.getItem(INTRO_DISMISSED_STORAGE_KEY) === "true";
+      } catch (error) {
+        return false;
       }
     }
 
@@ -1454,6 +1520,22 @@
       textNode.textContent = `${uiText("signoff")} `;
     }
 
+    function applyIntroVisibility(isDismissed, options = {}) {
+      if (!pageIntro) {
+        return;
+      }
+
+      pageIntro.hidden = Boolean(isDismissed);
+
+      if (options.persist) {
+        try {
+          window.localStorage.setItem(INTRO_DISMISSED_STORAGE_KEY, isDismissed ? "true" : "false");
+        } catch (error) {
+          return;
+        }
+      }
+    }
+
     function applyUiTranslations() {
       document.title = uiText("documentTitle");
       pageEyebrow.textContent = uiText("pageEyebrow");
@@ -1470,11 +1552,16 @@
       clearCacheButton.textContent = uiText("clearCache");
       supportTitleText.textContent = uiText("supportTitle");
       sourceInput.dataset.placeholder = uiText("enterTextHere");
+      newDraftButton.textContent = uiText("newDraft");
+      saveDraftButton.textContent = uiText("saveDraft");
+      loadDraftButton.textContent = uiText("loadDraft");
       hashtagsInput.placeholder = uiText("enterHashtagsHere");
       saveHashtagsButton.textContent = uiText("save");
       loadHashtagsButton.textContent = uiText("load");
-      clearButton.setAttribute("aria-label", uiText("clearText"));
-      clearButton.setAttribute("title", uiText("clearText"));
+      dismissIntroButton.setAttribute("aria-label", uiText("hideIntro"));
+      dismissIntroButton.setAttribute("title", uiText("hideIntro"));
+      loadDraftButton.setAttribute("aria-label", uiText("loadDraft"));
+      loadDraftButton.setAttribute("title", uiText("loadDraft"));
       pasteButtonLabel.textContent = uiText("paste");
       if (pasteButton.getAttribute("aria-label") !== uiText("pasted")) {
         pasteButton.setAttribute("aria-label", uiText("paste"));
@@ -1515,6 +1602,10 @@
 
       if (!hashtagsMenu.hidden) {
         renderHashtagMenu();
+      }
+
+      if (!draftsMenu.hidden) {
+        renderDraftMenu();
       }
     }
 
@@ -1566,6 +1657,7 @@
             numbering: numberingInput.checked,
             selectedLanguage,
             languageSetManually,
+            activeSavedDraftId,
           }),
         );
       } catch (error) {
@@ -1594,6 +1686,10 @@
       numberingInput.checked = Boolean(draft.numbering);
       hashtagsInput.value = typeof draft.hashtags === "string" ? draft.hashtags : "";
       setSourceText(typeof draft.sourceText === "string" ? draft.sourceText : "");
+      activeSavedDraftId =
+        typeof draft.activeSavedDraftId === "string" && draft.activeSavedDraftId.trim()
+          ? draft.activeSavedDraftId
+          : null;
 
       if (typeof draft.selectedLanguage === "string") {
         applyLanguageSelection(draft.selectedLanguage, {
@@ -1607,6 +1703,106 @@
     function getHashtagTokens(value = hashtagsInput.value) {
       const normalized = normalizeHashtags(value || "");
       return normalized ? normalized.split(/\s+/).filter(Boolean) : [];
+    }
+
+    function getCurrentDraftPayload() {
+      return {
+        sourceText: getSourceText(),
+        hashtags: normalizeHashtags(hashtagsInput.value || ""),
+      };
+    }
+
+    function buildDraftTitle(draft) {
+      const sourceTitle = normalizeText(draft?.sourceText || "").replace(/\s+/g, " ");
+      const hashtagTitle = normalizeHashtags(draft?.hashtags || "").replace(/\s+/g, " ");
+      const baseTitle = sourceTitle || hashtagTitle || uiText("untitledDraft");
+      return baseTitle.slice(0, 20).trimEnd() || uiText("untitledDraft");
+    }
+
+    function loadSavedDrafts() {
+      try {
+        const stored = window.localStorage.getItem(SAVED_DRAFTS_STORAGE_KEY);
+        if (!stored) {
+          return [];
+        }
+
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed)) {
+          return [];
+        }
+
+        return parsed
+          .filter((entry) => entry && typeof entry === "object")
+          .map((entry) => ({
+            id:
+              typeof entry.id === "string" && entry.id.trim()
+                ? entry.id
+                : `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            sourceText: typeof entry.sourceText === "string" ? entry.sourceText : "",
+            hashtags: normalizeHashtags(typeof entry.hashtags === "string" ? entry.hashtags : ""),
+            savedAt:
+              typeof entry.savedAt === "number" && Number.isFinite(entry.savedAt)
+                ? entry.savedAt
+                : Date.now(),
+            posted: Boolean(entry.posted),
+          }))
+          .filter((entry) => normalizeText(entry.sourceText) || entry.hashtags);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveSavedDrafts(drafts) {
+      try {
+        window.localStorage.setItem(
+          SAVED_DRAFTS_STORAGE_KEY,
+          JSON.stringify(
+            drafts
+              .filter((entry) => entry && typeof entry === "object")
+              .map((entry) => ({
+                id:
+                  typeof entry.id === "string" && entry.id.trim()
+                    ? entry.id
+                    : `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                sourceText: typeof entry.sourceText === "string" ? entry.sourceText : "",
+                hashtags: normalizeHashtags(typeof entry.hashtags === "string" ? entry.hashtags : ""),
+                savedAt:
+                  typeof entry.savedAt === "number" && Number.isFinite(entry.savedAt)
+                    ? entry.savedAt
+                    : Date.now(),
+                posted: Boolean(entry.posted),
+              }))
+              .filter((entry) => normalizeText(entry.sourceText) || entry.hashtags),
+          ),
+        );
+      } catch (error) {
+        return;
+      }
+    }
+
+    function markSavedDraftPosted(draftId) {
+      if (!draftId) {
+        return;
+      }
+
+      const savedDrafts = loadSavedDrafts();
+      const targetIndex = savedDrafts.findIndex((entry) => entry.id === draftId);
+      if (targetIndex < 0 || savedDrafts[targetIndex].posted) {
+        return;
+      }
+
+      const nextDraft = {
+        ...savedDrafts[targetIndex],
+        posted: true,
+      };
+      saveSavedDrafts([
+        nextDraft,
+        ...savedDrafts.filter((_, index) => index !== targetIndex),
+      ]);
+
+      if (!draftsMenu.hidden) {
+        renderDraftMenu();
+      }
     }
 
     function loadSavedHashtags() {
@@ -1654,6 +1850,12 @@
       loadHashtagsButton.setAttribute("aria-expanded", "false");
     }
 
+    function closeDraftsMenu() {
+      draftsMenu.hidden = true;
+      draftsMenu.style.maxHeight = "";
+      loadDraftButton.setAttribute("aria-expanded", "false");
+    }
+
     function syncHashtagsMenuSize() {
       hashtagsMenu.style.maxHeight = "";
 
@@ -1670,6 +1872,22 @@
       }
     }
 
+    function syncDraftsMenuSize() {
+      draftsMenu.style.maxHeight = "";
+
+      if (draftsMenu.hidden) {
+        return;
+      }
+
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const menuRect = draftsMenu.getBoundingClientRect();
+      const availableHeight = Math.max(0, Math.floor(viewportHeight - menuRect.top - 12));
+
+      if (availableHeight > 0) {
+        draftsMenu.style.maxHeight = `${availableHeight}px`;
+      }
+    }
+
     function updateHashtagButtonsState() {
       const currentTokens = getHashtagTokens();
       const saved = loadSavedHashtags();
@@ -1680,6 +1898,19 @@
 
       if (!saved.length) {
         closeHashtagsMenu();
+      }
+    }
+
+    function updateDraftButtonsState() {
+      const currentDraft = getCurrentDraftPayload();
+      const hasDraftContent = Boolean(normalizeText(currentDraft.sourceText) || currentDraft.hashtags);
+      const savedDrafts = loadSavedDrafts();
+      newDraftButton.disabled = !hasDraftContent;
+      saveDraftButton.disabled = !hasDraftContent;
+      loadDraftButton.disabled = !savedDrafts.length;
+
+      if (!savedDrafts.length) {
+        closeDraftsMenu();
       }
     }
 
@@ -1735,10 +1966,89 @@
     }
 
     function openHashtagsMenu() {
+      closeDraftsMenu();
       renderHashtagMenu();
       hashtagsMenu.hidden = false;
       loadHashtagsButton.setAttribute("aria-expanded", "true");
       syncHashtagsMenuSize();
+    }
+
+    function renderDraftMenu() {
+      const savedDrafts = loadSavedDrafts();
+
+      if (!savedDrafts.length) {
+        draftsMenuList.innerHTML = `<p class="hashtags-menu-empty">${uiText("noSavedDrafts")}</p>`;
+        updateDraftButtonsState();
+        return;
+      }
+
+      draftsMenuList.innerHTML = savedDrafts
+        .map((draft) => {
+          const encodedId = encodeURIComponent(draft.id);
+          const title = buildDraftTitle(draft);
+          const fullTitle =
+            normalizeText(draft.sourceText || "").replace(/\s+/g, " ") ||
+            normalizeHashtags(draft.hashtags || "").replace(/\s+/g, " ") ||
+            title;
+
+          return `
+            <div class="drafts-menu-entry">
+              <button
+                class="drafts-menu-select-button ${draft.posted ? "is-posted" : ""}"
+                type="button"
+                data-draft-id="${encodedId}"
+                title="${escapeHtml(fullTitle)}"
+              >
+                <span class="drafts-menu-label">${escapeHtml(title)}...</span>
+              </button>
+              <button
+                class="drafts-menu-delete-button"
+                type="button"
+                data-delete-draft-id="${encodedId}"
+                aria-label="${uiText("deleteSavedDraft")}"
+                title="${uiText("deleteSavedDraft")}"
+              >
+                <img
+                  class="drafts-menu-delete-icon"
+                  src="./assets/icons/close_circle_line.svg"
+                  alt=""
+                  width="20"
+                  height="20"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+          `;
+        })
+        .join("");
+
+      updateDraftButtonsState();
+      syncDraftsMenuSize();
+    }
+
+    function openDraftsMenu() {
+      closeHashtagsMenu();
+      renderDraftMenu();
+      draftsMenu.hidden = false;
+      loadDraftButton.setAttribute("aria-expanded", "true");
+      syncDraftsMenuSize();
+    }
+
+    function toggleDraftsMenu() {
+      if (draftsMenu.hidden) {
+        openDraftsMenu();
+        return;
+      }
+
+      closeDraftsMenu();
+    }
+
+    function handleLoadDraftsClick(event) {
+      toggleDraftsMenu();
+
+      if (event.detail > 0) {
+        loadDraftButton.blur();
+      }
     }
 
     function toggleHashtagsMenu() {
@@ -1907,10 +2217,6 @@
       sourceCharCount.textContent = uiText("charCount", { count: getSourceText().length });
     }
 
-    function updateClearButtonState() {
-      clearButton.disabled = !normalizeText(getSourceText());
-    }
-
     function canUseClipboardRead() {
       return Boolean(
         window.isSecureContext &&
@@ -1959,9 +2265,11 @@
     function renderPosts(posts) {
       resultsList.classList.remove("empty");
       resultsList.innerHTML = "";
+      const copyButtons = [];
 
       posts.forEach((post, index) => {
         const fragment = template.content.cloneNode(true);
+        const postCard = fragment.querySelector(".post-card");
         const postLabel = fragment.querySelector(".post-label");
         const postBody = fragment.querySelector(".post-body");
         const copyButton = fragment.querySelector(".copy-button");
@@ -1973,19 +2281,28 @@
           total: posts.length,
         });
         postCharCount.textContent = uiText("charCount", { count: post.length });
-        postBody.textContent = post;
+        postBody.innerHTML = renderPostHtml(post);
         copyButton.dataset.value = post;
         copyButtonLabel.textContent = uiText("copy");
         copyButton.setAttribute("aria-label", uiText("copyPost"));
         copyButton.setAttribute("title", uiText("copyPost"));
+        copyButton.disabled = posts.length > 1 && index > 0;
+        copyButtons.push(copyButton);
 
         copyButton.addEventListener("click", async () => {
           try {
             await copyText(post);
+            postCard.classList.add("copied");
             copyButton.classList.add("copied");
             copyButtonLabel.textContent = uiText("copied");
             copyButton.setAttribute("aria-label", uiText("copied"));
             copyButton.setAttribute("title", uiText("copied"));
+            if (copyButtons[index + 1]) {
+              copyButtons[index + 1].disabled = false;
+            }
+            if (index === posts.length - 1) {
+              markSavedDraftPosted(activeSavedDraftId);
+            }
             window.setTimeout(() => {
               copyButton.classList.remove("copied");
               copyButtonLabel.textContent = uiText("copy");
@@ -2108,8 +2425,8 @@
         const limit = getLimitValue();
         updateCorrectButtonState();
         updateSourceCharCount();
-        updateClearButtonState();
         updateHashtagButtonsState();
+        updateDraftButtonsState();
 
         if (!normalizeText(rawText)) {
           syncLanguageStatus();
@@ -2160,6 +2477,14 @@
         !eventTargetsNode(event, loadHashtagsButton)
       ) {
         closeHashtagsMenu();
+      }
+
+      if (
+        !draftsMenu.hidden &&
+        !eventTargetsNode(event, draftsMenu) &&
+        !eventTargetsNode(event, loadDraftButton)
+      ) {
+        closeDraftsMenu();
       }
     }
 
@@ -2225,6 +2550,8 @@
         try {
           window.localStorage.removeItem(THEME_STORAGE_KEY);
           window.localStorage.removeItem(UI_LANGUAGE_STORAGE_KEY);
+          window.localStorage.removeItem(INTRO_DISMISSED_STORAGE_KEY);
+          window.localStorage.removeItem(SAVED_DRAFTS_STORAGE_KEY);
           window.localStorage.removeItem(SAVED_HASHTAGS_STORAGE_KEY);
         } catch (error) {
           // Ignore storage failures and continue clearing what we can.
@@ -2325,15 +2652,83 @@
     }
 
     function handleClearSource() {
+      activeSavedDraftId = null;
       setSourceText("");
       hashtagsInput.value = "";
       setBanner("");
+      closeDraftsMenu();
       render();
 
       if (!hashtagsMenu.hidden) {
         renderHashtagMenu();
       }
 
+      focusSourceInput();
+    }
+
+    function handleNewDraft() {
+      handleClearSource();
+    }
+
+    function handleSaveDraft() {
+      const draft = getCurrentDraftPayload();
+      if (!normalizeText(draft.sourceText) && !draft.hashtags) {
+        return;
+      }
+
+      const savedDrafts = loadSavedDrafts();
+      const activeIndex =
+        activeSavedDraftId
+          ? savedDrafts.findIndex((entry) => entry.id === activeSavedDraftId)
+          : -1;
+      const existingIndex = savedDrafts.findIndex(
+        (entry) => entry.sourceText === draft.sourceText && entry.hashtags === draft.hashtags,
+      );
+      const targetIndex = activeIndex >= 0 ? activeIndex : existingIndex;
+      const existingDraft = targetIndex >= 0 ? savedDrafts[targetIndex] : null;
+      const shouldPreservePosted =
+        Boolean(existingDraft) &&
+        existingDraft.sourceText === draft.sourceText &&
+        existingDraft.hashtags === draft.hashtags;
+      const nextDraft = {
+        id:
+          targetIndex >= 0
+            ? savedDrafts[targetIndex].id
+            : `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        sourceText: draft.sourceText,
+        hashtags: draft.hashtags,
+        savedAt: Date.now(),
+        posted: shouldPreservePosted ? Boolean(existingDraft.posted) : false,
+      };
+      const nextDrafts =
+        targetIndex >= 0
+          ? [nextDraft, ...savedDrafts.filter((_, index) => index !== targetIndex)]
+          : [nextDraft, ...savedDrafts];
+
+      saveSavedDrafts(nextDrafts);
+      activeSavedDraftId = nextDraft.id;
+
+      if (!draftsMenu.hidden) {
+        renderDraftMenu();
+      } else {
+        updateDraftButtonsState();
+      }
+    }
+
+    function loadDraftIntoComposer(draftId) {
+      const draft = loadSavedDrafts().find((entry) => entry.id === draftId);
+      if (!draft) {
+        renderDraftMenu();
+        return;
+      }
+
+      activeSavedDraftId = draft.id;
+      setSourceText(draft.sourceText);
+      hashtagsInput.value = draft.hashtags;
+      maybeApplySuggestedLanguage(draft.sourceText);
+      setBanner("");
+      closeDraftsMenu();
+      render();
       focusSourceInput();
     }
 
@@ -2399,6 +2794,27 @@
       renderHashtagMenu();
     }
 
+    function handleDraftMenuClick(event) {
+      const deleteButton = event.target.closest(".drafts-menu-delete-button");
+      if (deleteButton) {
+        const draftId = decodeURIComponent(deleteButton.dataset.deleteDraftId || "");
+        if (draftId && draftId === activeSavedDraftId) {
+          activeSavedDraftId = null;
+        }
+        saveSavedDrafts(loadSavedDrafts().filter((entry) => entry.id !== draftId));
+        renderDraftMenu();
+        return;
+      }
+
+      const selectButton = event.target.closest(".drafts-menu-select-button");
+      if (!selectButton) {
+        return;
+      }
+
+      const draftId = decodeURIComponent(selectButton.dataset.draftId || "");
+      loadDraftIntoComposer(draftId);
+    }
+
     function handleSourceInput(event) {
       if (sourceMarkupActive) {
         flattenSourceMarkupPreservingSelection();
@@ -2450,9 +2866,15 @@
       render();
     });
     pasteButton.addEventListener("click", handlePasteFromClipboard);
-    clearButton.addEventListener("click", handleClearSource);
+    dismissIntroButton.addEventListener("click", () => {
+      applyIntroVisibility(true, { persist: true });
+    });
+    newDraftButton.addEventListener("click", handleNewDraft);
+    saveDraftButton.addEventListener("click", handleSaveDraft);
+    loadDraftButton.addEventListener("click", handleLoadDraftsClick);
     saveHashtagsButton.addEventListener("click", handleSaveHashtags);
     loadHashtagsButton.addEventListener("click", handleLoadHashtagsClick);
+    draftsMenuList.addEventListener("click", handleDraftMenuClick);
     hashtagsMenuList.addEventListener("change", handleHashtagMenuChange);
     hashtagsMenuList.addEventListener("click", handleHashtagMenuClick);
     moreMenu.addEventListener("toggle", syncMoreMenuState);
@@ -2476,7 +2898,10 @@
         passive: true,
       });
     }
-    window.addEventListener("resize", syncHashtagsMenuSize);
+    window.addEventListener("resize", () => {
+      syncHashtagsMenuSize();
+      syncDraftsMenuSize();
+    });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         if (moreMenu.open) {
@@ -2486,12 +2911,17 @@
         if (!hashtagsMenu.hidden) {
           closeHashtagsMenu();
         }
+
+        if (!draftsMenu.hidden) {
+          closeDraftsMenu();
+        }
       }
     });
 
     const initialBrowserLanguage = detectBrowserLanguage();
 
     applyTheme(loadThemePreference());
+    applyIntroVisibility(loadIntroDismissedPreference());
     applyInterfaceLanguage(loadInterfaceLanguagePreference() || initialBrowserLanguage || "en");
     syncMoreMenuState();
     if (!restoreDraftState()) {
@@ -2506,6 +2936,7 @@
       correctTextContent,
       detectSuggestedLanguage,
       normalizeHashtags,
+      renderPostHtml,
     };
 
     if (typeof document !== "undefined") {
@@ -2520,6 +2951,7 @@
       correctTextContent,
       detectSuggestedLanguage,
       normalizeHashtags,
+      renderPostHtml,
       takeChunk,
     };
   }
