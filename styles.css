@@ -1207,6 +1207,24 @@ select:focus {
   color: #0099cc;
 }
 
+.post-hashtag-support {
+  color: #f4cf42;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
+}
+
+.post-hashtag-support:hover,
+.post-hashtag-support:focus {
+  color: #ffd84f;
+}
+
+.post-hashtag-support:focus {
+  outline: 2px solid rgba(244, 207, 66, 0.45);
+  outline-offset: 2px;
+}
+
 .post-char-count {
   margin: 0;
   color: var(--panel-bar-text);

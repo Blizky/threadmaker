@@ -5,6 +5,7 @@
   const SAVED_DRAFTS_STORAGE_KEY = "threadmaker_saved_drafts";
   const SAVED_HASHTAGS_STORAGE_KEY = "threadmaker_saved_hashtags";
   const UI_LANGUAGE_STORAGE_KEY = "threadmaker_ui_language";
+  const SUPPORT_HASHTAG = "#ThreadMK";
   const MAX_TRANSLATION_SOURCE_CHARACTERS = 2500;
   const alwaysCorrectByLanguage = {
     es: new Set(["mas"]),
@@ -67,6 +68,10 @@
       preserveLineBreaks: "Preserve line breaks",
       language: "Language",
       numberPosts: "Number posts",
+      supportThreadMk: "Support #ThreadMK",
+      supportThreadMkTitle: "#ThreadMK",
+      supportThreadMkMessage:
+        "Support ThreadMK sharing this hashtag. You can disable it from the menu.",
       darkLight: "Dark / light",
       spellcheck: "Spellcheck",
       clearCache: "Clear cache",
@@ -107,6 +112,7 @@
         "It seems that this text is not English. Currently spellchecking only works for English and Spanish.\n\nDo you want to check in Spanish?",
       spellcheckPromptTitle: "Spellcheck Language",
       cancel: "Cancel",
+      ok: "OK",
       continue: "Continue",
       yes: "Yes",
       correctAction: "Spellcheck",
@@ -142,6 +148,10 @@
       preserveLineBreaks: "Preservar saltos de linea",
       language: "Idioma",
       numberPosts: "Numerar publicaciones",
+      supportThreadMk: "Apoyar #ThreadMK",
+      supportThreadMkTitle: "#ThreadMK",
+      supportThreadMkMessage:
+        "Apoya a ThreadMK compartiendo este hashtag. Puedes desactivarlo desde el menu.",
       darkLight: "Oscuro / claro",
       spellcheck: "Revisar ortografia",
       clearCache: "Borrar cache",
@@ -182,6 +192,7 @@
         "Parece que este texto no esta en ingles. Actualmente la revision ortografica solo funciona para ingles y espanol.\n\nQuieres revisar en espanol?",
       spellcheckPromptTitle: "Idioma de revision",
       cancel: "Cancelar",
+      ok: "OK",
       continue: "Continuar",
       yes: "Si",
       correctAction: "Revisar ortografia",
@@ -310,8 +321,11 @@
     while (match) {
       const hashtag = match[0];
       const start = match.index;
+      const isSupportHashtag = normalizeHashtagToken(hashtag) === SUPPORT_HASHTAG;
       html += escapeHtml(content.slice(lastIndex, start));
-      html += `<span class="post-hashtag">${escapeHtml(hashtag)}</span>`;
+      html += isSupportHashtag
+        ? `<span class="post-hashtag post-hashtag-support" data-support-hashtag="true" role="button" tabindex="0">${escapeHtml(hashtag)}</span>`
+        : `<span class="post-hashtag">${escapeHtml(hashtag)}</span>`;
       lastIndex = start + hashtag.length;
       match = hashtagPattern.exec(content);
     }
@@ -405,6 +419,18 @@
       .map(normalizeHashtagToken)
       .filter(Boolean)
       .join(" ");
+  }
+
+  function buildHashtagsValue(input, options = {}) {
+    const tokens = normalizeHashtags(input || "")
+      .split(/\s+/)
+      .filter(Boolean);
+
+    if (options.includeSupportTag && !tokens.includes(SUPPORT_HASHTAG)) {
+      tokens.push(SUPPORT_HASHTAG);
+    }
+
+    return tokens.join(" ");
   }
 
   function escapeRegExp(value) {
@@ -1316,7 +1342,9 @@
     const limit = Number(options.limit);
     const numbering = Boolean(options.numbering);
     const splitMode = options.splitMode === "compact" ? "compact" : "paragraph";
-    const hashtags = normalizeHashtags(options.hashtags || "");
+    const hashtags = buildHashtagsValue(options.hashtags || "", {
+      includeSupportTag: Boolean(options.supportThreadMk),
+    });
     const hashtagsBlock = hashtags ? `\n\n${hashtags}` : "";
     const plainText = normalizeText(text || "");
 
@@ -1421,6 +1449,7 @@
     const preserveLineBreaksInput = document.getElementById("preserve-line-breaks");
     const languageSelect = document.getElementById("language-select");
     const numberingInput = document.getElementById("include-numbering");
+    const supportThreadMkInput = document.getElementById("support-threadmk");
     const pasteButton = document.getElementById("paste-text");
     const pasteButtonLabel = pasteButton.querySelector(".panel-button-label");
     const newDraftButton = document.getElementById("new-draft");
@@ -1455,6 +1484,7 @@
     const preserveLineBreaksTitle = form.querySelector('label[for="preserve-line-breaks"] .toggle-title');
     const languageSelectLabel = form.querySelector('label[for="language-select"]');
     const numberingTitle = form.querySelector('label[for="include-numbering"] .toggle-title');
+    const supportThreadMkTitle = form.querySelector('label[for="support-threadmk"] .toggle-title');
     const themeTitle = form.querySelector('label[for="theme-toggle"] .toggle-title');
     const supportTitleText = form.querySelector(".menu-support-title span");
     const menuSignoff = form.querySelector(".menu-signoff");
@@ -1634,6 +1664,7 @@
       preserveLineBreaksTitle.textContent = uiText("preserveLineBreaks");
       languageSelectLabel.textContent = uiText("language");
       numberingTitle.textContent = uiText("numberPosts");
+      supportThreadMkTitle.textContent = uiText("supportThreadMk");
       themeTitle.textContent = uiText("darkLight");
       correctButton.textContent = uiText("spellcheck");
       clearCacheButton.textContent = uiText("clearCache");
@@ -1715,13 +1746,24 @@
     function openConfirmModal(options = {}) {
       confirmModalTitle.textContent = options.title || uiText("spellcheckPromptTitle");
       confirmModalMessage.textContent = options.message || "";
+      const showCancel = options.showCancel !== false;
       confirmModalCancelButton.textContent = options.cancelLabel || uiText("cancel");
       confirmModalConfirmButton.textContent = options.confirmLabel || uiText("continue");
+      confirmModalCancelButton.hidden = !showCancel;
       confirmModal.hidden = false;
       confirmModalConfirmButton.focus();
 
       return new Promise((resolve) => {
         confirmModalResolver = resolve;
+      });
+    }
+
+    function showSupportThreadMkMessage() {
+      return openConfirmModal({
+        title: uiText("supportThreadMkTitle"),
+        message: uiText("supportThreadMkMessage"),
+        confirmLabel: uiText("ok"),
+        showCancel: false,
       });
     }
 
@@ -1771,6 +1813,7 @@
             customLimit: customLimit.value,
             splitMode: getSplitModeValue(),
             numbering: numberingInput.checked,
+            supportThreadMk: supportThreadMkInput.checked,
             activeSavedDraftId,
           }),
         );
@@ -1798,6 +1841,8 @@
       }
 
       numberingInput.checked = Boolean(draft.numbering);
+      supportThreadMkInput.checked =
+        typeof draft.supportThreadMk === "boolean" ? draft.supportThreadMk : true;
       hashtagsInput.value = typeof draft.hashtags === "string" ? draft.hashtags : "";
       setSourceText(typeof draft.sourceText === "string" ? draft.sourceText : "");
       activeSavedDraftId =
@@ -2469,6 +2514,30 @@
       });
     }
 
+    function handleSupportHashtagActivation(event) {
+      const target = event.target.closest("[data-support-hashtag='true']");
+      if (!target || !resultsList.contains(target)) {
+        return;
+      }
+
+      event.preventDefault();
+      showSupportThreadMkMessage();
+    }
+
+    function handleSupportHashtagKeydown(event) {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      const target = event.target.closest("[data-support-hashtag='true']");
+      if (!target || !resultsList.contains(target)) {
+        return;
+      }
+
+      event.preventDefault();
+      showSupportThreadMkMessage();
+    }
+
     function setBanner(message) {
       transientBannerMessage = String(message || "").trim();
       syncBanner();
@@ -2585,6 +2654,7 @@
           limit,
           numbering: numberingInput.checked,
           hashtags: hashtagsInput.value,
+          supportThreadMk: supportThreadMkInput.checked,
           splitMode: getSplitModeValue(),
         });
 
@@ -3147,6 +3217,8 @@
     draftsMenuList.addEventListener("click", handleDraftMenuClick);
     hashtagsMenuList.addEventListener("change", handleHashtagMenuChange);
     hashtagsMenuList.addEventListener("click", handleHashtagMenuClick);
+    resultsList.addEventListener("click", handleSupportHashtagActivation);
+    resultsList.addEventListener("keydown", handleSupportHashtagKeydown);
     moreMenu.addEventListener("toggle", syncMoreMenuState);
     if (menuBackdrop) {
       menuBackdrop.addEventListener("click", () => {
