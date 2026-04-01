@@ -15,7 +15,7 @@
   --muted: var(--alabaster-grey);
   --accent: var(--alabaster-grey);
   --accent-soft: rgba(210, 215, 220, 0.12);
-  --warning: var(--platinum);
+  --warning: #ffd166;
   --warning-bg: rgba(77, 84, 91, 0.42);
   --radius: 0;
   --shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
@@ -64,7 +64,7 @@
   --muted: var(--charcoal);
   --accent: var(--charcoal-blue);
   --accent-soft: rgba(59, 67, 74, 0.1);
-  --warning: var(--jet-black);
+  --warning: #b85c00;
   --warning-bg: rgba(210, 215, 220, 0.72);
   --shadow: 0 18px 40px rgba(36, 41, 45, 0.08);
   --body-top-glow: rgba(59, 67, 74, 0.05);
@@ -445,7 +445,7 @@ a {
 .drafts-toolbar {
   display: flex;
   align-items: stretch;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 10px;
   margin-bottom: 12px;
   width: 100%;
@@ -1085,12 +1085,14 @@ select:focus {
 }
 
 .message-banner {
-  margin-bottom: 14px;
-  padding: 13px 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: 0;
-  background: var(--warning-bg);
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--warning);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .results-list {
@@ -1113,6 +1115,57 @@ select:focus {
 
 .results-list:not(.empty) .post-card:first-child {
   border-top: 0;
+}
+
+.translate-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.translate-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--panel-bar-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.translate-action-button:hover,
+.translate-action-button:focus {
+  color: var(--panel-bar-hover);
+}
+
+.translate-action-button:focus {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.translate-action-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  filter: var(--panel-icon-filter);
+}
+
+.translate-action-button:hover .translate-action-icon,
+.translate-action-button:focus .translate-action-icon {
+  filter: var(--panel-icon-filter-hover);
+}
+
+.translate-action-label {
+  color: inherit;
+  white-space: nowrap;
 }
 
 .empty-state {

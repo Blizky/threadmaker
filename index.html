@@ -284,6 +284,7 @@
       </section>
 
       <section class="input-section">
+        <div class="message-banner" id="message-banner" hidden></div>
         <div class="drafts-toolbar">
           <button id="new-draft" class="action-button drafts-action-button" type="button">New</button>
           <button id="save-draft" class="action-button drafts-action-button" type="button">Save draft</button>
@@ -369,9 +370,28 @@
       </section>
 
       <section class="results-section">
-        <div class="message-banner" id="message-banner" hidden></div>
         <div class="results-list empty" id="results-list">
           <div class="empty-state"></div>
+        </div>
+        <div class="translate-actions" id="translate-actions" hidden>
+          <button
+            id="translate-thread"
+            class="translate-action-button"
+            type="button"
+            hidden
+            aria-label="Translate to Spanish"
+            title="Translate to Spanish"
+          >
+            <img
+              class="icon-img translate-action-icon"
+              src="./assets/icons/world_2_line.svg"
+              alt=""
+              width="24"
+              height="24"
+              aria-hidden="true"
+            />
+            <span class="translate-action-label">Translate to Spanish</span>
+          </button>
         </div>
       </section>
     </main>

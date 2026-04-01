@@ -5,6 +5,7 @@
   const SAVED_DRAFTS_STORAGE_KEY = "threadmaker_saved_drafts";
   const SAVED_HASHTAGS_STORAGE_KEY = "threadmaker_saved_hashtags";
   const UI_LANGUAGE_STORAGE_KEY = "threadmaker_ui_language";
+  const MAX_TRANSLATION_SOURCE_CHARACTERS = 2500;
   const alwaysCorrectByLanguage = {
     es: new Set(["mas"]),
     en: new Set(),
@@ -95,6 +96,12 @@
       copied: "Copied",
       copyPost: "Copy post",
       copyFailed: "Copy failed in this browser. Try selecting the text manually.",
+      translateToLanguage: "Translate to {language}",
+      translatingToLanguage: "Translating to {language}...",
+      translationFailed: "Translation failed. Please try again.",
+      translationLimitReached:
+        "Translation currently supports up to {count} characters in the source text.",
+      translationBetaNotice: "This service is in beta, please verify translation before posting.",
       spellcheckMismatchGeneric:
         "It seems that this text is not {language}. Currently spellchecking only works for English and Spanish.",
       spellcheckSwitchSpanish:
@@ -165,6 +172,12 @@
       copied: "Copiado",
       copyPost: "Copiar publicacion",
       copyFailed: "La copia fallo en este navegador. Intenta seleccionar el texto manualmente.",
+      translateToLanguage: "Traducir a {language}",
+      translatingToLanguage: "Traduciendo a {language}...",
+      translationFailed: "La traduccion fallo. Intenta de nuevo.",
+      translationLimitReached:
+        "La traduccion actualmente admite hasta {count} caracteres en el texto de origen.",
+      translationBetaNotice: "Este servicio esta en beta. Verifica la traduccion antes de publicar.",
       spellcheckMismatchGeneric:
         "Parece que este texto no esta en {language}. Actualmente la revision ortografica solo funciona para ingles y espanol.",
       spellcheckSwitchSpanish:
@@ -225,6 +238,10 @@
 
   function pluralText(key, count, locale = interfaceLanguage) {
     return uiText(`${key}_${count === 1 ? "one" : "other"}`, { count }, locale);
+  }
+
+  function getOppositeLanguage(language = interfaceLanguage) {
+    return language === "es" ? "en" : "es";
   }
 
   function normalizeText(value) {
@@ -1427,6 +1444,9 @@
     const sourceInput = document.getElementById("source-text");
     const resultsList = document.getElementById("results-list");
     const template = document.getElementById("post-template");
+    const translateActions = document.getElementById("translate-actions");
+    const translateButton = document.getElementById("translate-thread");
+    const translateButtonLabel = translateButton?.querySelector(".translate-action-label");
     const banner = document.getElementById("message-banner");
     const pageIntro = document.getElementById("page-intro");
     const pageEyebrow = document.getElementById("page-eyebrow");
@@ -1670,6 +1690,8 @@
 
       updateMenuSignoffText();
       updateSourceCharCount();
+      syncBanner();
+      updateTranslateButtonState();
 
       if (!hashtagsMenu.hidden) {
         renderHashtagMenu();
@@ -2157,11 +2179,30 @@
     }
 
     let sourceMarkupActive = false;
+    let translateInFlight = false;
+    let transientBannerMessage = "";
+    let translationBetaNoticeActive = false;
 
     function setCorrectionStatus(message) {
       const hasMessage = Boolean(String(message || "").trim());
       correctionStatusLabel.textContent = message;
       correctionStatus.hidden = !hasMessage;
+    }
+
+    function getPersistentBannerMessage() {
+      return translationBetaNoticeActive ? uiText("translationBetaNotice") : "";
+    }
+
+    function syncBanner() {
+      const message = transientBannerMessage || getPersistentBannerMessage();
+      if (!message) {
+        banner.hidden = true;
+        banner.textContent = "";
+        return;
+      }
+
+      banner.hidden = false;
+      banner.textContent = message;
     }
 
     function getSourceText() {
@@ -2315,6 +2356,48 @@
       syncLanguageStatus();
     }
 
+    function getTranslateButtonLabel(language = getOppositeLanguage()) {
+      return uiText("translateToLanguage", {
+        language: getLanguageLabel(language, {
+          locale: interfaceLanguage,
+          capitalize: true,
+        }),
+      });
+    }
+
+    function getTranslatingButtonLabel(language = getOppositeLanguage()) {
+      return uiText("translatingToLanguage", {
+        language: getLanguageLabel(language, {
+          locale: interfaceLanguage,
+          capitalize: true,
+        }),
+      });
+    }
+
+    function updateTranslateButtonState() {
+      if (!translateActions || !translateButton) {
+        return;
+      }
+
+      const hasResults = !resultsList.classList.contains("empty");
+      const hasSourceText = Boolean(normalizeText(getSourceText()));
+      const isVisible = hasResults && hasSourceText;
+
+      translateActions.hidden = !isVisible;
+      translateButton.hidden = !isVisible;
+      translateButton.disabled = translateInFlight || !hasSourceText;
+
+      if (!translateInFlight) {
+        const targetLanguage = getOppositeLanguage();
+        const label = getTranslateButtonLabel(targetLanguage);
+        if (translateButtonLabel) {
+          translateButtonLabel.textContent = label;
+        }
+        translateButton.setAttribute("aria-label", label);
+        translateButton.setAttribute("title", label);
+      }
+    }
+
     function updateCorrectButtonState() {
       const disabled = !normalizeText(getSourceText());
       correctButton.disabled = disabled;
@@ -2390,14 +2473,8 @@
     }
 
     function setBanner(message) {
-      if (!message) {
-        banner.hidden = true;
-        banner.textContent = "";
-        return;
-      }
-
-      banner.hidden = false;
-      banner.textContent = message;
+      transientBannerMessage = String(message || "").trim();
+      syncBanner();
     }
 
     function normalizePastedText(text) {
@@ -2520,6 +2597,7 @@
         renderEmpty();
         setBanner(error.message);
       } finally {
+        updateTranslateButtonState();
         saveDraftState();
       }
     }
@@ -2647,6 +2725,85 @@
       }
     }
 
+    async function handleTranslateThread() {
+      const rawText = getSourceText();
+      const normalizedSourceText = normalizeText(rawText);
+      if (!normalizedSourceText || translateInFlight) {
+        return;
+      }
+
+      if (normalizedSourceText.length > MAX_TRANSLATION_SOURCE_CHARACTERS) {
+        setBanner(
+          uiText("translationLimitReached", {
+            count: MAX_TRANSLATION_SOURCE_CHARACTERS,
+          }),
+        );
+        return;
+      }
+
+      const sourceLanguage = interfaceLanguage === "es" ? "es" : "en";
+      const targetLanguage = getOppositeLanguage(sourceLanguage);
+      const originalLabel = getTranslateButtonLabel(targetLanguage);
+      const loadingLabel = getTranslatingButtonLabel(targetLanguage);
+
+      translateInFlight = true;
+      translateButton.disabled = true;
+      if (translateButtonLabel) {
+        translateButtonLabel.textContent = loadingLabel;
+      }
+      translateButton.setAttribute("aria-label", loadingLabel);
+      translateButton.setAttribute("title", loadingLabel);
+      setBanner("");
+
+      try {
+        const response = await fetch("/api/translate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sourceText: normalizedSourceText,
+            hashtags: normalizeHashtags(hashtagsInput.value || ""),
+            sourceLanguage,
+            targetLanguage,
+          }),
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error || uiText("translationFailed"));
+        }
+
+        activeSavedDraftId = null;
+        setSourceText(typeof payload?.translatedText === "string" ? payload.translatedText : "");
+        hashtagsInput.value = normalizeHashtags(
+          typeof payload?.translatedHashtags === "string" ? payload.translatedHashtags : "",
+        );
+        translationBetaNoticeActive = true;
+        applyInterfaceLanguage(payload?.targetLanguage === "es" ? "es" : "en", {
+          persist: true,
+        });
+        closeDraftsMenu();
+        closeHashtagsMenu();
+        render();
+        focusSourceInput();
+      } catch (error) {
+        setBanner(
+          typeof error?.message === "string" && error.message.trim()
+            ? error.message
+            : uiText("translationFailed"),
+        );
+      } finally {
+        translateInFlight = false;
+        if (translateButtonLabel) {
+          translateButtonLabel.textContent = originalLabel;
+        }
+        translateButton.setAttribute("aria-label", originalLabel);
+        translateButton.setAttribute("title", originalLabel);
+        updateTranslateButtonState();
+      }
+    }
+
     async function handleClearCache() {
       const originalLabel = clearCacheButton.textContent;
       clearCacheButton.disabled = true;
@@ -2763,6 +2920,7 @@
 
     function handleClearSource() {
       activeSavedDraftId = null;
+      translationBetaNoticeActive = false;
       setSourceText("");
       hashtagsInput.value = "";
       setBanner("");
@@ -2833,6 +2991,7 @@
       }
 
       activeSavedDraftId = draft.id;
+      translationBetaNoticeActive = false;
       setSourceText(draft.sourceText);
       hashtagsInput.value = draft.hashtags;
       setBanner("");
@@ -2983,6 +3142,7 @@
     loadDraftButton.addEventListener("click", handleLoadDraftsClick);
     saveHashtagsButton.addEventListener("click", handleSaveHashtags);
     loadHashtagsButton.addEventListener("click", handleLoadHashtagsClick);
+    translateButton.addEventListener("click", handleTranslateThread);
     confirmModalCancelButton.addEventListener("click", () => closeConfirmModal(false));
     confirmModalConfirmButton.addEventListener("click", () => closeConfirmModal(true));
     confirmModal.addEventListener("click", (event) => {
