@@ -2180,6 +2180,7 @@
 
     let sourceMarkupActive = false;
     let translateInFlight = false;
+    let translateReadyForCurrentResults = false;
     let transientBannerMessage = "";
     let translationBetaNoticeActive = false;
 
@@ -2381,7 +2382,7 @@
 
       const hasResults = !resultsList.classList.contains("empty");
       const hasSourceText = Boolean(normalizeText(getSourceText()));
-      const isVisible = hasResults && hasSourceText;
+      const isVisible = hasResults && hasSourceText && translateReadyForCurrentResults;
 
       translateActions.hidden = !isVisible;
       translateButton.hidden = !isVisible;
@@ -2411,11 +2412,13 @@
     }
 
     function renderEmpty() {
+      translateReadyForCurrentResults = false;
       resultsList.classList.add("empty");
       resultsList.innerHTML = '<div class="empty-state"></div>';
     }
 
     function renderPosts(posts) {
+      translateReadyForCurrentResults = false;
       resultsList.classList.remove("empty");
       resultsList.innerHTML = "";
       const copyButtons = [];
@@ -2454,7 +2457,9 @@
               copyButtons[index + 1].disabled = false;
             }
             if (index === posts.length - 1) {
+              translateReadyForCurrentResults = true;
               markSavedDraftPosted(activeSavedDraftId);
+              updateTranslateButtonState();
             }
             window.setTimeout(() => {
               copyButton.classList.remove("copied");
@@ -2463,8 +2468,7 @@
               copyButton.setAttribute("title", uiText("copyPost"));
             }, 1400);
           } catch (error) {
-            banner.hidden = false;
-            banner.textContent = uiText("copyFailed");
+            setBanner(uiText("copyFailed"));
           }
         });
 
