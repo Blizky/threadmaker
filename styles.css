@@ -1120,13 +1120,13 @@ select:focus {
 .translate-actions {
   margin-top: 12px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .translate-action-button {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
   width: auto;
   min-height: 0;

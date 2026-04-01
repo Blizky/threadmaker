@@ -96,12 +96,11 @@
       copied: "Copied",
       copyPost: "Copy post",
       copyFailed: "Copy failed in this browser. Try selecting the text manually.",
-      translateToLanguage: "Translate to {language}",
-      translatingToLanguage: "Translating to {language}...",
+      translateToLanguage: "Translate to {language} (Beta)",
+      translatingToLanguage: "Translating to {language} (Beta)...",
       translationFailed: "Translation failed. Please try again.",
       translationLimitReached:
         "Translation currently supports up to {count} characters in the source text.",
-      translationBetaNotice: "This service is in beta, please verify translation before posting.",
       spellcheckMismatchGeneric:
         "It seems that this text is not {language}. Currently spellchecking only works for English and Spanish.",
       spellcheckSwitchSpanish:
@@ -172,12 +171,11 @@
       copied: "Copiado",
       copyPost: "Copiar publicacion",
       copyFailed: "La copia fallo en este navegador. Intenta seleccionar el texto manualmente.",
-      translateToLanguage: "Traducir a {language}",
-      translatingToLanguage: "Traduciendo a {language}...",
+      translateToLanguage: "Traducir a {language} (Beta)",
+      translatingToLanguage: "Traduciendo a {language} (Beta)...",
       translationFailed: "La traduccion fallo. Intenta de nuevo.",
       translationLimitReached:
         "La traduccion actualmente admite hasta {count} caracteres en el texto de origen.",
-      translationBetaNotice: "Este servicio esta en beta. Verifica la traduccion antes de publicar.",
       spellcheckMismatchGeneric:
         "Parece que este texto no esta en {language}. Actualmente la revision ortografica solo funciona para ingles y espanol.",
       spellcheckSwitchSpanish:
@@ -2182,7 +2180,6 @@
     let translateInFlight = false;
     let translateReadyForCurrentResults = false;
     let transientBannerMessage = "";
-    let translationBetaNoticeActive = false;
 
     function setCorrectionStatus(message) {
       const hasMessage = Boolean(String(message || "").trim());
@@ -2190,12 +2187,8 @@
       correctionStatus.hidden = !hasMessage;
     }
 
-    function getPersistentBannerMessage() {
-      return translationBetaNoticeActive ? uiText("translationBetaNotice") : "";
-    }
-
     function syncBanner() {
-      const message = transientBannerMessage || getPersistentBannerMessage();
+      const message = transientBannerMessage;
       if (!message) {
         banner.hidden = true;
         banner.textContent = "";
@@ -2783,7 +2776,6 @@
         hashtagsInput.value = normalizeHashtags(
           typeof payload?.translatedHashtags === "string" ? payload.translatedHashtags : "",
         );
-        translationBetaNoticeActive = true;
         applyInterfaceLanguage(payload?.targetLanguage === "es" ? "es" : "en", {
           persist: true,
         });
@@ -2924,7 +2916,6 @@
 
     function handleClearSource() {
       activeSavedDraftId = null;
-      translationBetaNoticeActive = false;
       setSourceText("");
       hashtagsInput.value = "";
       setBanner("");
@@ -2995,7 +2986,6 @@
       }
 
       activeSavedDraftId = draft.id;
-      translationBetaNoticeActive = false;
       setSourceText(draft.sourceText);
       hashtagsInput.value = draft.hashtags;
       setBanner("");
