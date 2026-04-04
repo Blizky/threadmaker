@@ -16,6 +16,11 @@
     <meta name="author" content="Alex Blizky" />
     <meta name="application-name" content="ThreadMK" />
     <meta id="theme-color-meta" name="theme-color" content="" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ThreadMK" />
+    <link rel="icon" type="image/png" sizes="180x180" href="./assets/svg/apple_touch_icon.png?v=2" />
+    <link rel="shortcut icon" href="./assets/svg/apple_touch_icon.png?v=2" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/svg/apple_touch_icon.png?v=2" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="ThreadMK" />
     <meta
@@ -76,14 +81,7 @@
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
-          <img
-            class="brand-bolt"
-            src="./assets/svg/blizlab-bolt.svg"
-            alt=""
-            width="12"
-            height="12"
-            aria-hidden="true"
-          />
+          <span class="brand-mark" aria-hidden="true"></span>
           <span>ThreadMK</span>
         </div>
         <div class="topbar-actions">
@@ -434,15 +432,10 @@
             </div>
             <div class="panel-actions">
               <p class="source-char-count" id="source-char-count">0 chars</p>
+              <button id="copy-source-text" class="panel-icon-button copy-source-button" type="button" aria-label="Copy" title="Copy">
+                <span class="panel-button-label">Copy</span>
+              </button>
               <button id="paste-text" class="panel-icon-button paste-button" type="button" aria-label="Paste" title="Paste">
-                <img
-                  class="icon-img panel-icon"
-                  src="./assets/icons/paste_fill.svg"
-                  alt=""
-                  width="24"
-                  height="24"
-                  aria-hidden="true"
-                />
                 <span class="panel-button-label">Paste</span>
               </button>
             </div>
@@ -507,16 +500,11 @@
         <div class="panel-header post-header">
           <span class="post-label"></span>
           <div class="panel-actions">
-            <p class="post-char-count"></p>
+            <div class="post-count-group">
+              <p class="post-char-count"></p>
+              <span class="post-platform-icon" aria-hidden="true"></span>
+            </div>
             <button type="button" class="panel-icon-button copy-button" aria-label="Copy post" title="Copy post">
-              <img
-                class="icon-img panel-icon"
-                src="./assets/icons/clipboard_line.svg"
-                alt=""
-                width="24"
-                height="24"
-                aria-hidden="true"
-              />
               <span class="panel-button-label">Copy</span>
             </button>
           </div>

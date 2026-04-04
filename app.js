@@ -13,6 +13,10 @@
   const SUPPORT_HASHTAG = "#ThreadMK";
   const SUPPORT_PROMPT_TRIGGER_COUNT = 10;
   const SUPPORT_PROMPT_DELAY_MS = 500;
+  const MOBILE_HEADER_MEDIA_QUERY = "(max-width: 719px)";
+  const CORRECTION_STATUS_SCROLL_DELAY_MS = 1000;
+  const CORRECTION_STATUS_SCROLL_RESET_DELAY_MS = 1000;
+  const CORRECTION_STATUS_SCROLL_SPEED_PX_PER_SEC = 18;
   const PLATFORM_PRESETS = {
     x: {
       limit: 280,
@@ -168,7 +172,7 @@
       correctedIssue_other: "Corrected {count} issues",
       flaggedTerm_one: "flagged {count} suspicious term",
       flaggedTerm_other: "flagged {count} suspicious terms",
-      viaLanguageTool: "{parts} via LanguageTool",
+      viaLanguageTool: "{parts}",
       fallbackFix_one: "Applied {count} fallback fix",
       fallbackFix_other: "Applied {count} fallback fixes",
       correctionFailed: "Correction failed",
@@ -264,7 +268,7 @@
       correctedIssue_other: "Corregidos {count} problemas",
       flaggedTerm_one: "marcado {count} termino sospechoso",
       flaggedTerm_other: "marcados {count} terminos sospechosos",
-      viaLanguageTool: "{parts} con LanguageTool",
+      viaLanguageTool: "{parts}",
       fallbackFix_one: "Aplicada {count} correccion alternativa",
       fallbackFix_other: "Aplicadas {count} correcciones alternativas",
       correctionFailed: "La correccion fallo",
@@ -1525,6 +1529,8 @@
     const topbarLanguageToggle = document.getElementById("topbar-language-toggle");
     const numberingInput = document.getElementById("include-numbering");
     const supportThreadMkInput = document.getElementById("support-threadmk");
+    const copySourceButton = document.getElementById("copy-source-text");
+    const copySourceButtonLabel = copySourceButton.querySelector(".panel-button-label");
     const pasteButton = document.getElementById("paste-text");
     const pasteButtonLabel = pasteButton.querySelector(".panel-button-label");
     const newDraftButton = document.getElementById("new-draft");
@@ -2007,6 +2013,11 @@
       loadDraftButton.setAttribute("title", uiText("loadDraft"));
       confirmModalTitle.textContent = uiText("spellcheckPromptTitle");
       confirmModalCancelButton.textContent = uiText("cancel");
+      copySourceButtonLabel.textContent = uiText("copy");
+      if (copySourceButton.getAttribute("aria-label") !== uiText("copied")) {
+        copySourceButton.setAttribute("aria-label", uiText("copy"));
+        copySourceButton.setAttribute("title", uiText("copy"));
+      }
       pasteButtonLabel.textContent = uiText("paste");
       if (pasteButton.getAttribute("aria-label") !== uiText("pasted")) {
         pasteButton.setAttribute("aria-label", uiText("paste"));
@@ -2542,13 +2553,104 @@
     let sourceMarkupActive = false;
     let transientBannerMessage = "";
     let transientBannerHtml = "";
+    let correctionStatusScrollTimeoutId = null;
+    let correctionStatusScrollRestartTimeoutId = null;
+    let correctionStatusMeasureFrameId = null;
+
+    function clearCorrectionStatusAutoScroll() {
+      if (correctionStatusScrollTimeoutId) {
+        window.clearTimeout(correctionStatusScrollTimeoutId);
+        correctionStatusScrollTimeoutId = null;
+      }
+
+      if (correctionStatusScrollRestartTimeoutId) {
+        window.clearTimeout(correctionStatusScrollRestartTimeoutId);
+        correctionStatusScrollRestartTimeoutId = null;
+      }
+
+      if (correctionStatusMeasureFrameId) {
+        window.cancelAnimationFrame(correctionStatusMeasureFrameId);
+        correctionStatusMeasureFrameId = null;
+      }
+
+      correctionStatus.classList.remove("is-auto-scrolling");
+      correctionStatus.style.removeProperty("--correction-status-scroll-distance");
+      correctionStatus.style.removeProperty("--correction-status-scroll-duration");
+    }
+
+    function shouldAutoScrollCorrectionStatus() {
+      if (!window.matchMedia(MOBILE_HEADER_MEDIA_QUERY).matches) {
+        return false;
+      }
+
+      if (correctionStatus.hidden || correctionStatusLabel.hidden) {
+        return false;
+      }
+
+      return correctionStatusLabel.scrollWidth - correctionStatus.clientWidth > 4;
+    }
+
+    function scheduleCorrectionStatusAutoScroll() {
+      clearCorrectionStatusAutoScroll();
+
+      if (!shouldAutoScrollCorrectionStatus()) {
+        return;
+      }
+
+      correctionStatusMeasureFrameId = window.requestAnimationFrame(() => {
+        correctionStatusMeasureFrameId = null;
+        if (!shouldAutoScrollCorrectionStatus()) {
+          return;
+        }
+
+        correctionStatusScrollTimeoutId = window.setTimeout(() => {
+          correctionStatusScrollTimeoutId = null;
+          if (!shouldAutoScrollCorrectionStatus()) {
+            return;
+          }
+
+          const overflowDistance = correctionStatusLabel.scrollWidth - correctionStatus.clientWidth;
+          if (overflowDistance <= 4) {
+            return;
+          }
+
+          correctionStatus.style.setProperty(
+            "--correction-status-scroll-distance",
+            `${-overflowDistance}px`,
+          );
+          correctionStatus.style.setProperty(
+            "--correction-status-scroll-duration",
+            `${Math.max(overflowDistance / CORRECTION_STATUS_SCROLL_SPEED_PX_PER_SEC, 2)}s`,
+          );
+          correctionStatus.classList.add("is-auto-scrolling");
+        }, CORRECTION_STATUS_SCROLL_DELAY_MS);
+      });
+    }
+
+    function handleCorrectionStatusAnimationEnd(event) {
+      if (event.target !== correctionStatusLabel || !correctionStatus.classList.contains("is-auto-scrolling")) {
+        return;
+      }
+
+      correctionStatusScrollRestartTimeoutId = window.setTimeout(() => {
+        correctionStatus.classList.remove("is-auto-scrolling");
+        correctionStatusScrollRestartTimeoutId = window.setTimeout(() => {
+          correctionStatusScrollRestartTimeoutId = null;
+          scheduleCorrectionStatusAutoScroll();
+        }, CORRECTION_STATUS_SCROLL_RESET_DELAY_MS);
+      }, CORRECTION_STATUS_SCROLL_RESET_DELAY_MS);
+    }
 
     function setCorrectionStatus(message, options = {}) {
       const hasMessage = Boolean(String(message || "").trim());
+      clearCorrectionStatusAutoScroll();
       correctionStatusLabel.textContent = message;
       correctionStatusLabel.hidden = !hasMessage;
       correctionStatus.hidden = !hasMessage;
       inlineSpellcheckButton.hidden = hasMessage;
+      if (hasMessage) {
+        scheduleCorrectionStatusAutoScroll();
+      }
     }
 
     function syncBanner() {
@@ -2734,6 +2836,7 @@
 
     function updateCorrectButtonState() {
       const normalizedText = normalizeText(getSourceText());
+      copySourceButton.disabled = !normalizedText;
       correctButton.disabled = !normalizedText;
       inlineSpellcheckButton.disabled = !normalizedText;
     }
@@ -2751,12 +2854,14 @@
       resultsList.classList.remove("empty");
       resultsList.innerHTML = "";
       const copyButtons = [];
+      const activeConfig = PLATFORM_PRESETS[platformLimit.value];
 
       posts.forEach((post, index) => {
         const fragment = template.content.cloneNode(true);
         const postCard = fragment.querySelector(".post-card");
         const postLabel = fragment.querySelector(".post-label");
         const postBody = fragment.querySelector(".post-body");
+        const postPlatformIcon = fragment.querySelector(".post-platform-icon");
         const copyButton = fragment.querySelector(".copy-button");
         const copyButtonLabel = fragment.querySelector(".panel-button-label");
         const postCharCount = fragment.querySelector(".post-char-count");
@@ -2765,6 +2870,15 @@
           total: posts.length,
         });
         postCharCount.textContent = uiText("charCount", { count: post.length });
+        if (postPlatformIcon) {
+          if (activeConfig) {
+            postPlatformIcon.hidden = false;
+            postPlatformIcon.style.setProperty("--post-platform-icon-mask", `url("${activeConfig.iconFill}")`);
+          } else {
+            postPlatformIcon.hidden = true;
+            postPlatformIcon.style.removeProperty("--post-platform-icon-mask");
+          }
+        }
         postBody.innerHTML = renderPostHtml(post, {
           muteHashtags: index === posts.length - 1,
         });
@@ -3182,6 +3296,29 @@
       }
     }
 
+    async function handleCopySourceText() {
+      const sourceText = getSourceText();
+      if (!normalizeText(sourceText)) {
+        return;
+      }
+
+      try {
+        await copyText(sourceText);
+        copySourceButton.classList.add("copied");
+        copySourceButtonLabel.textContent = uiText("copied");
+        copySourceButton.setAttribute("aria-label", uiText("copied"));
+        copySourceButton.setAttribute("title", uiText("copied"));
+        window.setTimeout(() => {
+          copySourceButton.classList.remove("copied");
+          copySourceButtonLabel.textContent = uiText("copy");
+          copySourceButton.setAttribute("aria-label", uiText("copy"));
+          copySourceButton.setAttribute("title", uiText("copy"));
+        }, 1400);
+      } catch (error) {
+        setBanner(uiText("copyFailed"));
+      }
+    }
+
     function handleClearSource() {
       activeSavedDraftId = null;
       setSourceText("");
@@ -3409,6 +3546,7 @@
     sourceInput.addEventListener("input", handleSourceInput);
     sourceInput.addEventListener("click", handleSourceClick);
     sourceInput.addEventListener("paste", handleSourcePaste);
+    correctionStatusLabel.addEventListener("animationend", handleCorrectionStatusAnimationEnd);
     inlineSpellcheckButton.addEventListener("click", handleCorrection);
     hashtagsInput.addEventListener("input", handleHashtagsInput);
     platformPresetButtons.forEach((button) => {
@@ -3423,6 +3561,7 @@
       applyInterfaceLanguage(getTopbarLanguageTarget(), { persist: true });
       render();
     });
+    copySourceButton.addEventListener("click", handleCopySourceText);
     pasteButton.addEventListener("click", handlePasteFromClipboard);
     dismissIntroButton.addEventListener("click", () => {
       applyIntroVisibility(true, { persist: true });
@@ -3485,6 +3624,7 @@
     window.addEventListener("resize", () => {
       syncHashtagsMenuSize();
       syncDraftsMenuSize();
+      scheduleCorrectionStatusAutoScroll();
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
