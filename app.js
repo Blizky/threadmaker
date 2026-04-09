@@ -973,6 +973,34 @@
     return chunks;
   }
 
+  function splitPlainPostsWithCapacities(text, capacities) {
+    let remaining = normalizeText(text);
+    const chunks = [];
+
+    for (let index = 0; index < capacities.length; index += 1) {
+      if (!remaining) {
+        return chunks;
+      }
+
+      const available = capacities[index];
+
+      if (!Number.isFinite(available) || available < 1) {
+        return null;
+      }
+
+      const { chunk, rest } = takeChunk(remaining, available);
+
+      if (!chunk) {
+        return null;
+      }
+
+      chunks.push(chunk);
+      remaining = rest;
+    }
+
+    return remaining ? null : chunks;
+  }
+
   function tokenizeText(text) {
     const paragraphs = normalizeText(text)
       .split(/\n{2,}/)
@@ -982,11 +1010,22 @@
     const units = [];
 
     paragraphs.forEach((paragraph, paragraphIndex) => {
+      const urlPlaceholders = [];
+      const protectedParagraph = paragraph.replace(/https?:\/\/\S+/gi, (url) => {
+        const placeholder = `__THREADMK_URL_${urlPlaceholders.length}__`;
+        urlPlaceholders.push(url);
+        return placeholder;
+      });
       const sentences =
-        paragraph.match(/[^.!?…]+(?:[.!?…]+["')\]]*)?|[^.!?…]+$/g) || [paragraph];
+        protectedParagraph.match(/[^.!?…]+(?:[.!?…]+["')\]]*)?|[^.!?…]+$/g) || [protectedParagraph];
 
       sentences
-        .map((sentence) => sentence.replace(/\s+/g, " ").trim())
+        .map((sentence) =>
+          sentence
+            .replace(/__THREADMK_URL_(\d+)__/g, (_, index) => urlPlaceholders[Number(index)] || "")
+            .replace(/\s+/g, " ")
+            .trim()
+        )
         .filter(Boolean)
         .forEach((sentence, sentenceIndex) => {
           units.push({
@@ -1229,27 +1268,29 @@
 
   function estimatePostCount(text, limit, hashtagsBlock, numbering, options = {}) {
     const continuationMarker = options.continuationMarker || "";
-    let estimate = 1;
+    const safeText = normalizeText(text);
 
-    for (let iteration = 0; iteration < 12; iteration += 1) {
-      const plainPosts = splitPlainPosts(text, (index) => {
-        const suffix = numbering ? ` (${index + 1}/${estimate})` : "";
-        const continuationReserve = index < estimate - 1 ? continuationMarker.length : 0;
-        const reserved =
-          suffix.length +
-          continuationReserve +
-          (index === estimate - 1 ? hashtagsBlock.length : 0);
-        return limit - reserved;
-      });
-
-      if (plainPosts.length === estimate) {
-        return plainPosts.length;
-      }
-
-      estimate = plainPosts.length;
+    if (!safeText) {
+      return 0;
     }
 
-    return estimate;
+    for (let totalPosts = 1; totalPosts <= safeText.length; totalPosts += 1) {
+      const capacities = createCapacities(totalPosts, limit, {
+        numbering,
+        hashtagsBlock,
+        continuationMarker,
+      });
+
+      if (capacities.some((capacity) => !Number.isFinite(capacity) || capacity < 1)) {
+        continue;
+      }
+
+      if (splitPlainPostsWithCapacities(safeText, capacities)) {
+        return totalPosts;
+      }
+    }
+
+    return safeText.length;
   }
 
   function buildGreedyPosts(text, options) {
@@ -1258,28 +1299,29 @@
     const hashtagsBlock = options.hashtagsBlock || "";
     const continuationMarker = options.continuationMarker || "";
     const normalizedText = normalizeText(text);
-    let estimate = 1;
 
-    for (let iteration = 0; iteration < 12; iteration += 1) {
-      const plainPosts = splitPlainPosts(normalizedText, (index) => {
-        const suffix = numbering ? ` (${index + 1}/${estimate})` : "";
-        const continuationReserve = index < estimate - 1 ? continuationMarker.length : 0;
-        const reserved =
-          suffix.length +
-          continuationReserve +
-          (index === estimate - 1 ? hashtagsBlock.length : 0);
-        return limit - reserved;
+    for (let totalPosts = 1; totalPosts <= normalizedText.length; totalPosts += 1) {
+      const capacities = createCapacities(totalPosts, limit, {
+        numbering,
+        hashtagsBlock,
+        continuationMarker,
       });
 
-      if (plainPosts.length === estimate) {
-        return finalizePosts(plainPosts, {
-          numbering,
-          hashtagsBlock,
-          continuationMarker,
-        });
+      if (capacities.some((capacity) => !Number.isFinite(capacity) || capacity < 1)) {
+        continue;
       }
 
-      estimate = plainPosts.length;
+      const plainPosts = splitPlainPostsWithCapacities(normalizedText, capacities);
+
+      if (!plainPosts) {
+        continue;
+      }
+
+      return finalizePosts(plainPosts, {
+        numbering,
+        hashtagsBlock,
+        continuationMarker,
+      });
     }
 
     return null;
